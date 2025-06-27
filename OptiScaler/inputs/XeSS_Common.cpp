@@ -99,6 +99,9 @@ xess_result_t hk_xessGetProperties(xess_context_handle_t hContext, const xess_2d
 {
     LOG_DEBUG("");
     *pBindingProperties = {};
+    (*pBindingProperties).requiredDescriptorCount = 1;
+    (*pBindingProperties).tempBufferHeapSize = 1024;
+    (*pBindingProperties).tempTextureHeapSize = 1024;
 
     LOG_WARN("");
     return XESS_RESULT_SUCCESS;

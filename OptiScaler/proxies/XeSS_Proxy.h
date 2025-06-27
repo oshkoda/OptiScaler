@@ -845,7 +845,13 @@ class XeSSProxy
     static xess_version_t Version()
     {
         if (_xessVersion.major == 0)
-            _xessGetVersion(&_xessVersion);
+        {
+            if (auto result = _xessGetVersion(&_xessVersion); result == XESS_RESULT_SUCCESS)
+
+                LOG_INFO("XeSS Version: v{}.{}.{}", _xessVersion.major, _xessVersion.minor, _xessVersion.patch);
+            else
+                LOG_ERROR("Can't get XeSS version: {}", (UINT) result);
+        }
 
         // If dll version cant be read disable 1.3.x specific stuff
         if (_xessVersion.major == 0)
