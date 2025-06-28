@@ -115,7 +115,7 @@ jobs:
         api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
         organization-id: 'cea1f484-9039-4fe9-bb48-e7e5b0b09526'
         project-slug: 'OptiScaler'
-        signing-policy-slug: 'test-signing'
+        signing-policy-slug: 'release-signing'
         github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
         wait-for-completion: true
         output-artifact-directory: 'signed'
