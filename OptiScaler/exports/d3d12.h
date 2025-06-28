@@ -57,7 +57,7 @@ HRESULT _D3D12CreateRootSignatureDeserializerExport(LPCVOID pSrcData, SIZE_T Src
         pSrcData, SrcDataSizeInBytes, pRootSignatureDeserializerInterface, ppRootSignatureDeserializer);
 }
 
-HRESULT _D3D12SerializeVersionedRootSignatureExport(const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignature,
+HRESULT _D3D12SerializeVersionedRootSignatureExport(D3d12Proxy::D3D12_VERSIONED_ROOT_SIGNATURE_DESC_L* pRootSignature,
                                                     ID3DBlob** ppBlob, ID3DBlob** ppErrorBlob)
 {
     return D3d12Proxy::D3D12SerializeVersionedRootSignature_Hooked()(pRootSignature, ppBlob, ppErrorBlob);

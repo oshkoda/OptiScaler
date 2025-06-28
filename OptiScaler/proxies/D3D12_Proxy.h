@@ -22,6 +22,25 @@ class D3d12Proxy
         D3D12_ROOT_SIGNATURE_FLAGS Flags;
     } D3D12_ROOT_SIGNATURE_DESC_L;
 
+    typedef struct D3D12_ROOT_SIGNATURE_DESC1_L
+    {
+        UINT NumParameters;
+        D3D12_ROOT_PARAMETER1* pParameters;
+        UINT NumStaticSamplers;
+        D3D12_STATIC_SAMPLER_DESC* pStaticSamplers;
+        D3D12_ROOT_SIGNATURE_FLAGS Flags;
+    } D3D12_ROOT_SIGNATURE_DESC1_L;
+
+    typedef struct D3D12_VERSIONED_ROOT_SIGNATURE_DESC_L
+    {
+        D3D_ROOT_SIGNATURE_VERSION Version;
+        union
+        {
+            D3D12_ROOT_SIGNATURE_DESC_L Desc_1_0;
+            D3D12_ROOT_SIGNATURE_DESC1_L Desc_1_1;
+        };
+    } D3D12_VERSIONED_ROOT_SIGNATURE_DESC_L;
+
     typedef HRESULT (*PFN_D3D12CreateDevice)(IUnknown*, D3D_FEATURE_LEVEL, REFIID, void**);
     typedef HRESULT (*PFN_D3D12SerializeRootSignature)(D3D12_ROOT_SIGNATURE_DESC_L* pRootSignature,
                                                        D3D_ROOT_SIGNATURE_VERSION Version, ID3DBlob** ppBlob,
@@ -29,8 +48,8 @@ class D3d12Proxy
     typedef HRESULT (*PFN_D3D12CreateRootSignatureDeserializer)(LPCVOID pSrcData, SIZE_T SrcDataSizeInBytes,
                                                                 REFIID pRootSignatureDeserializerInterface,
                                                                 void** ppRootSignatureDeserializer);
-    typedef HRESULT (*PFN_D3D12SerializeVersionedRootSignature)(
-        const D3D12_VERSIONED_ROOT_SIGNATURE_DESC* pRootSignature, ID3DBlob** ppBlob, ID3DBlob** ppErrorBlob);
+    typedef HRESULT (*PFN_D3D12SerializeVersionedRootSignature)(D3D12_VERSIONED_ROOT_SIGNATURE_DESC_L* pRootSignature,
+                                                                ID3DBlob** ppBlob, ID3DBlob** ppErrorBlob);
     typedef HRESULT (*PFN_D3D12CreateVersionedRootSignatureDeserializer)(LPCVOID pSrcData, SIZE_T SrcDataSizeInBytes,
                                                                          REFIID pRootSignatureDeserializerInterface,
                                                                          void** ppRootSignatureDeserializer);
