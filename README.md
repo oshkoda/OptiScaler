@@ -12,7 +12,7 @@
 **4.** [**Installation**](#installation)  
 **5.** [**Known Issues**](#known-issues)  
 **6.** [**Compilation and Credits**](#compilation)  
-**7.** [**Wiki**](ttps://github.com/optiscaler/OptiScaler/wiki)
+**7.** [**Wiki**](https://github.com/optiscaler/OptiScaler/wiki)
 
 ## About
 
