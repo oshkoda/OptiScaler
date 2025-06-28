@@ -337,4 +337,5 @@ void IFGFeature_Dx12::Present()
     DispatchHudless(hudless, State::Instance().lastFrameTime);
 }
 
+bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady; }
 bool IFGFeature_Dx12::ReadyForExecute() { return _mvAndDepthReady && _hudlessReady; }

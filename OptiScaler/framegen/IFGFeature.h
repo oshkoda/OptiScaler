@@ -41,6 +41,7 @@ class IFGFeature
     virtual void MVandDepthReady() = 0;
     virtual void HudlessReady() = 0;
     virtual void HudlessDispatchReady() = 0;
+    virtual bool UpscalerInputsReady() = 0;
     virtual bool ReadyForExecute() = 0;
     virtual void Present() = 0;
 

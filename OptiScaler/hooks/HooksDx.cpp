@@ -202,7 +202,9 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         return result;
     }
 
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART))
+    auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
+
+    if (willPresent)
     {
         double ftDelta = 0.0f;
 
@@ -219,7 +221,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 
     IFGFeature_Dx12* fg = State::Instance().currentFG;
 
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART))
+    if (willPresent)
     {
         if (State::Instance().activeFgType == OptiFG && HooksDx::dx12UpscaleTrig &&
             HooksDx::readbackBuffer != nullptr && HooksDx::queryHeap != nullptr &&
@@ -259,7 +261,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         }
 
         if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
-            fg->ReadyForExecute())
+            fg->UpscalerInputsReady())
         {
             LOG_DEBUG("Dispatch fg");
             State::Instance().fgTrigSource = "Present";
@@ -269,7 +271,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     }
 
     auto lockAccuired = false;
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART) && fg != nullptr && fg->IsActive() &&
+    if (willPresent && fg != nullptr && fg->IsActive() &&
         Config::Instance()->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
     {
         LOG_TRACE("Waiting FG->Mutex 2, current: {}", fg->Mutex.getOwner());
@@ -289,7 +291,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         LOG_TRACE("Accuired FG->Mutex: {}, fgMutexReleaseFrame: {}", fg->Mutex.getOwner(), _releaseMutexTargetFrame);
     }
 
-    if (!(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART))
+    if (willPresent)
     {
         ResTrack_Dx12::ClearPossibleHudless();
         Hudfix_Dx12::PresentStart();
@@ -332,10 +334,12 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
         return presentResult;
     }
 
+    auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
+
     // if (State::Instance().activeFgType == OptiFG && State::Instance().currentFG != nullptr)
     //     State::Instance().currentFG->CallbackMutex.lock();
 
-    if (State::Instance().activeFgType != OptiFG && !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART))
+    if (State::Instance().activeFgType != OptiFG && willPresent)
     {
         double ftDelta = 0.0f;
 

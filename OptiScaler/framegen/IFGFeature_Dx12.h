@@ -77,5 +77,6 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     void HudlessReady() override;
     void HudlessDispatchReady() override;
     void Present() override;
+    bool UpscalerInputsReady() override;
     bool ReadyForExecute() override;
 };
