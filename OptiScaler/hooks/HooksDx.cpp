@@ -2056,33 +2056,42 @@ static HRESULT hkD3D12SerializeRootSignature(D3d12Proxy::D3D12_ROOT_SIGNATURE_DE
 
             if (Config::Instance()->AnisotropyOverride.has_value())
             {
-                LOG_DEBUG("Overriding {2:X} to anisotropic filtering {0} -> {1}", samplerDesc->MaxAnisotropy,
-                          Config::Instance()->AnisotropyOverride.value(), (UINT) samplerDesc->Filter);
+                bool force = false;
 
                 switch (samplerDesc->Filter)
                 {
                 case D3D12_FILTER_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_COMPARISON_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_MINIMUM_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_MAXIMUM_ANISOTROPIC;
+                    force = true;
                     break;
                 }
 
-                samplerDesc->MaxAnisotropy = Config::Instance()->AnisotropyOverride.value();
+                if (force)
+                {
+                    LOG_DEBUG("Overriding {2:X} to anisotropic filtering {0} -> {1}", samplerDesc->MaxAnisotropy,
+                              Config::Instance()->AnisotropyOverride.value(), (UINT) samplerDesc->Filter);
+
+                    samplerDesc->MaxAnisotropy = Config::Instance()->AnisotropyOverride.value();
+                }
             }
         }
     }
@@ -2129,33 +2138,42 @@ static HRESULT hkD3D12SerializeVersionedRootSignature(D3d12Proxy::D3D12_VERSIONE
 
             if (Config::Instance()->AnisotropyOverride.has_value())
             {
-                LOG_DEBUG("Overriding {2:X} to anisotropic filtering {0} -> {1}", samplerDesc->MaxAnisotropy,
-                          Config::Instance()->AnisotropyOverride.value(), (UINT) samplerDesc->Filter);
+                bool force = false;
 
                 switch (samplerDesc->Filter)
                 {
                 case D3D12_FILTER_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_COMPARISON_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_MINIMUM_ANISOTROPIC;
+                    force = true;
                     break;
 
                 case D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR:
                 case D3D12_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT:
                     samplerDesc->Filter = D3D12_FILTER_MAXIMUM_ANISOTROPIC;
+                    force = true;
                     break;
                 }
 
-                samplerDesc->MaxAnisotropy = Config::Instance()->AnisotropyOverride.value();
+                if (force)
+                {
+                    LOG_DEBUG("Overriding {2:X} to anisotropic filtering {0} -> {1}", samplerDesc->MaxAnisotropy,
+                              Config::Instance()->AnisotropyOverride.value(), (UINT) samplerDesc->Filter);
+
+                    samplerDesc->MaxAnisotropy = Config::Instance()->AnisotropyOverride.value();
+                }
             }
         }
     }
