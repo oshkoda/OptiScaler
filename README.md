@@ -12,7 +12,7 @@
 **4.** [**Installation**](#installation)  
 **5.** [**Known Issues**](#known-issues)  
 **6.** [**Compilation and Credits**](#compilation)  
-**7.** [**Wiki**](https://github.com/cdozdil/OptiScaler/wiki)
+**7.** [**Wiki**](ttps://github.com/optiscaler/OptiScaler/wiki)
 
 ## About
 
@@ -31,9 +31,9 @@
 
 
 > [!IMPORTANT]
-> _**Always check the [Wiki Compatibility list](https://github.com/cdozdil/OptiScaler/wiki) for known game issues and workarounds.**_  
+> _**Always check the [Wiki Compatibility list](https://github.com/optiscaler/OptiScaler/wiki) for known game issues and workarounds.**_  
 > Also please check the  [***OptiScaler known issues***](#known-issues) at the end regarding **RTSS** compatibility.
-> A separate [***FSR4 Compatibility list***](https://github.com/cdozdil/OptiScaler/wiki/FSR4-Compatibility-List) is available for community-sourced tested games.  
+> A separate [***FSR4 Compatibility list***](https://github.com/optiscaler/OptiScaler/wiki/FSR4-Compatibility-List) is available for community-sourced tested games.  
 > ***[3]** For **not bundled** items, please check [Installation](#installation).*  
 
 > [!NOTE]
@@ -42,9 +42,9 @@
 >  
 > ***[1]** Regarding **XeSS**, since Unreal Engine plugin does not provide depth, replacing in-game XeSS breaks other upscalers (e.g. Redout 2 as a XeSS-only game), but you can still apply RCAS sharpening to XeSS to reduce blurry visuals (in short, if it's a UE game, in-game XeSS only works with XeSS in OptiScaler overlay).*
 >
-> *Regarding **FSR inputs**, FSR 3.1 is the first version with a fully standardised, forward-looking API and should be fully supported. Since FSR2 and FSR3 support custom interfaces, game support will depend on the developers' implementation. With Unreal Engine games, you might need [ini tweaks](https://github.com/cdozdil/OptiScaler/wiki/Unreal-Engine-Tweaks) for FSR inputs.*  
+> *Regarding **FSR inputs**, FSR 3.1 is the first version with a fully standardised, forward-looking API and should be fully supported. Since FSR2 and FSR3 support custom interfaces, game support will depend on the developers' implementation. With Unreal Engine games, you might need [ini tweaks](https://github.com/optiscaler/OptiScaler/wiki/Unreal-Engine-Tweaks) for FSR inputs.*  
 >
-> ***[2]** Regarding **FSR4**, support added with recent Nightly builds. Please check [FSR4 Compatibility list](https://github.com/cdozdil/OptiScaler/wiki/FSR4-Compatibility-List) for known supported games and general info.*
+> ***[2]** Regarding **FSR4**, support added with recent Nightly builds. Please check [FSR4 Compatibility list](https://github.com/optiscaler/OptiScaler/wiki/FSR4-Compatibility-List) for known supported games and general info.*
 > 
 > </details>
 
@@ -98,7 +98,7 @@ Currently **OptiScaler** can be used with DirectX 11, DirectX 12 and Vulkan, but
 **OptiFG** was added with **v0.7** and is **only supported in DX12**. 
 It's an **experimental** way of adding FSR3 FG to games without native Frame Generation, or can also be used as a last case scenario if the native FG is not working properly.
 
-For more information on OptiFG and how to use it, please check the Wiki page - [OptiFG](https://github.com/cdozdil/OptiScaler/wiki/OptiFG).
+For more information on OptiFG and how to use it, please check the Wiki page - [OptiFG](https://github.com/optiscaler/OptiScaler/wiki/OptiFG).
 
 
 ## Installation
@@ -106,7 +106,7 @@ For more information on OptiFG and how to use it, please check the Wiki page - [
 > _**Warning**: **Do not use this mod with online games.** It may trigger anti-cheat software and cause bans!_
 
 > [!IMPORTANT]
-> **For installation steps, please check the [**Wiki**](https://github.com/cdozdil/OptiScaler/wiki)**  
+> **For installation steps, please check the [**Wiki**](https://github.com/optiscaler/OptiScaler/wiki)**  
 
 
 ## Configuration
@@ -118,10 +118,10 @@ If you can't open the in-game menu overlay:
 2. If using legacy installation, please try opening menu while you are in-game (while 3D rendering is happening)
 3. If you are using **RTSS** (MSI Afterburner, CapFrameX), please enable this setting in RTSS and/or try updating RTSS. **When using OptiFG please disable RTSS for best compatibility**.
  
- ![image](https://github.com/cdozdil/OptiScaler/assets/35529761/8afb24ac-662a-40ae-a97c-837369e03fc7)
+ ![image](https://github.com/optiscaler/OptiScaler/assets/35529761/8afb24ac-662a-40ae-a97c-837369e03fc7)
 
 Please check [this](Issues.md) document for the rest of the known issues and possible solutions for them.  
-Also check the community [Wiki](https://github.com/cdozdil/OptiScaler/wiki) for possible game issues and HUDfix incompatible games.
+Also check the community [Wiki](https://github.com/optiscaler/OptiScaler/wiki) for possible game issues and HUDfix incompatible games.
 
 ## Compilation
 
