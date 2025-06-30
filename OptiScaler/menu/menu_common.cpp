@@ -1467,7 +1467,7 @@ bool MenuCommon::RenderMenu()
 
             if (Config::Instance()->FpsOverlayType.value_or_default() == 0)
             {
-                ImGui::Text("%s | FPS: %5.1f, %6.2f ms", api.c_str(), frameRate, frameTime);
+                ImGui::Text("%s | FPS: %5.1f", api.c_str(), frameRate, frameTime);
             }
             else if (Config::Instance()->FpsOverlayType.value_or_default() == 1)
             {
