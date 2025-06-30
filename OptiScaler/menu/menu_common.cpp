@@ -1294,7 +1294,7 @@ bool MenuCommon::RenderMenu()
         }
 
         if (inputFpsCycle && Config::Instance()->ShowFps.value_or_default())
-            Config::Instance()->FpsOverlayType = (Config::Instance()->FpsOverlayType.value_or_default() + 1) % 5;
+            Config::Instance()->FpsOverlayType = (Config::Instance()->FpsOverlayType.value_or_default() + 1) % 6;
 
         if (inputMenu)
         {
@@ -1467,6 +1467,10 @@ bool MenuCommon::RenderMenu()
 
             if (Config::Instance()->FpsOverlayType.value_or_default() == 0)
             {
+                ImGui::Text("%s | FPS: %5.1f, %6.2f ms", api.c_str(), frameRate, frameTime);
+            }
+            else if (Config::Instance()->FpsOverlayType.value_or_default() == 1)
+            {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
                     ImGui::Text("%s | FPS: %5.1f, %6.2f ms | %s -> %s %d.%d.%d", api.c_str(), frameRate, frameTime,
                                 State::Instance().currentInputApiName.c_str(), currentFeature->Name().c_str(),
@@ -1488,7 +1492,7 @@ bool MenuCommon::RenderMenu()
                     ImGui::Text("%s | FPS: %5.1f, Avg: %5.1f", api.c_str(), frameRate, 1000.0f / averageFrameTime);
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 0)
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                 {
@@ -1512,7 +1516,7 @@ bool MenuCommon::RenderMenu()
             else
                 plotSize = { fpsScale * 300, fpsScale * 30 };
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 2)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                     ImGui::SameLine(0.0f, 0.0f);
@@ -1522,7 +1526,7 @@ bool MenuCommon::RenderMenu()
                                  nullptr, 0.0f, 66.6f, plotSize);
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 2)
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 3)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                 {
@@ -1539,7 +1543,7 @@ bool MenuCommon::RenderMenu()
                             averageUpscalerFT);
             }
 
-            if (Config::Instance()->FpsOverlayType.value_or_default() > 3)
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 4)
             {
                 if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
                     ImGui::SameLine(0.0f, 0.0f);
@@ -3725,12 +3729,13 @@ bool MenuCommon::RenderMenu()
                         ImGui::EndCombo();
                     }
 
-                    const char* fpsType[] = { "Simple", "Detailed", "Detailed + Graph", "Full", "Full + Graph" };
+                    const char* fpsType[] = { "Just FPS",         "Simple", "Detailed",
+                                              "Detailed + Graph", "Full",   "Full + Graph" };
                     const char* selectedType = fpsType[Config::Instance()->FpsOverlayType.value_or_default()];
 
                     if (ImGui::BeginCombo("Overlay Type", selectedType))
                     {
-                        for (int n = 0; n < 5; n++)
+                        for (int n = 0; n < 6; n++)
                         {
                             if (ImGui::Selectable(fpsType[n],
                                                   (Config::Instance()->FpsOverlayType.value_or_default() == n)))

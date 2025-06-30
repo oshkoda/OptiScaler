@@ -218,7 +218,8 @@ class Config
     CustomOptional<bool> ShowFps { false };
     /// 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right
     CustomOptional<int> FpsOverlayPos { 0 };
-    /// 0 Only FPS, 1 +Frame Time, 2 +Upscaler Time, 3 +Frame Time Graph, 4 +Upscaler Time Graph
+    /// 0 Only FPS, 1 +Avg FPS & Upscaler info 2 +Frame Time,
+    /// 3 +Upscaler Time, 4 +Frame Time Graph, 5 +Upscaler Time Graph
     CustomOptional<int> FpsOverlayType { 0 };
     CustomOptional<int> FpsShortcutKey { VK_PRIOR };
     CustomOptional<int> FpsCycleShortcutKey { VK_NEXT };
