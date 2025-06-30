@@ -145,7 +145,10 @@ bool Hudfix_Dx12::CheckCapture()
 
     // early exit
     if (_captureCounter[fIndex] > 999)
+    {
+        LOG_DEBUG("_captureCounter[{}] > 999", fIndex);
         return false;
+    }
 
     {
         std::lock_guard<std::mutex> lock(_counterMutex);
@@ -187,7 +190,16 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     if (resource->width == 0 || resource->height == 0 || resource->buffer == nullptr)
         return false;
 
+    // LOG_DEBUG("Width: {}, Height: {}, Format: {}, Resource: {:X}", resource->width, resource->height,
+    //           (UINT) resource->format, (size_t) resource->buffer);
+
+    /*
+    *
+    * Was breaking immediate capture, disabled for now
+    *
+
     // Check if info is valid
+
     auto currentMs = Util::MillisecondsNow();
     if (!Config::Instance()->FGAlwaysTrackHeaps.value_or_default() && resource->lastUsedFrame != 0 &&
         (currentMs - resource->lastUsedFrame) > 0.3)
@@ -198,6 +210,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
         resource->lastUsedFrame = currentMs; // use it next time if timing is ok
         return false;
     }
+    */
 
     // Check if resource is valid
     // LOG_TRACE("Check resource if resource is still valid, if crashes here ResTrack is missing something");
@@ -239,7 +252,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                   (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
                   Config::Instance()->FGHUDFixExtended.value_or_default());
 
-        resource->lastUsedFrame = currentMs;
+        // resource->lastUsedFrame = currentMs;
 
         return true;
     }
@@ -249,7 +262,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     {
         // LOG_TRACE("Width: {}/{}, Height: {}/{}, Format: {}/{}, Resource: {:X}, convertFormat: {} -> FALSE",
         //           resDesc.Width, scDesc.BufferDesc.Width, resDesc.Height, scDesc.BufferDesc.Height,
-        //           (UINT)resDesc.Format, (UINT)scDesc.BufferDesc.Format, (size_t)resource->buffer,
+        //           (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
         //           Config::Instance()->FGHUDFixExtended.value_or_default());
 
         return false;
@@ -285,7 +298,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                   (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
                   Config::Instance()->FGHUDFixExtended.value_or_default());
 
-        resource->lastUsedFrame = currentMs;
+        // resource->lastUsedFrame = currentMs;
 
         return true;
     }
@@ -310,7 +323,11 @@ void Hudfix_Dx12::HudlessFound()
     // Increase counter
     _fgCounter++;
 
-    // State::Instance().currentFG->DispatchHudless(true, State::Instance().lastFrameTime);
+    State::Instance().currentFG->DispatchHudless(true, State::Instance().lastFrameTime);
+
+    // If Velocity and Depth copied then execute
+    if (State::Instance().currentFG->UpscalerInputsReady())
+        State::Instance().currentFG->ExecuteHudlessCmdList();
 
     _skipHudlessChecks = false;
 }
@@ -436,7 +453,7 @@ bool Hudfix_Dx12::IsResourceCheckActive()
 bool Hudfix_Dx12::SkipHudlessChecks() { return _skipHudlessChecks; }
 
 bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandList* cmdList, ResourceInfo* resource,
-                                  D3D12_RESOURCE_STATES state)
+                                  D3D12_RESOURCE_STATES state, bool ignoreBlocked)
 {
     if (State::Instance().currentFG == nullptr)
         return false;
@@ -453,93 +470,97 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
         LOG_DEBUG("Waiting _checkMutex");
         std::lock_guard<std::mutex> lock(_checkMutex);
 
-        if (_hudlessList.contains(resource->buffer))
+        if (!ignoreBlocked)
         {
-            auto info = &_hudlessList[resource->buffer];
-
-            // if game starts reusing the ignored resource & it's not banned
-            if (info->ignore && !info->dontReuse)
+            if (_hudlessList.contains(resource->buffer))
             {
-                // check resource once per frame
-                if (info->lastTriedFrame != _upscaleCounter)
+                auto info = &_hudlessList[resource->buffer];
+
+                // if game starts reusing the ignored resource & it's not banned
+                if (info->ignore && !info->dontReuse)
                 {
-                    // start retry period
-                    if (info->retryStartFrame == 0)
+                    // check resource once per frame
+                    if (info->lastTriedFrame != _upscaleCounter)
                     {
-                        LOG_WARN("Retry for {:X} as hudless, current frame: {}", (size_t) resource->buffer,
-                                 _upscaleCounter);
-                        info->retryStartFrame = _upscaleCounter;
-                        info->lastTriedFrame = _upscaleCounter;
-                        info->retryCount = 0;
-                        break;
-                    }
-
-                    info->retryCount++;
-                    info->lastTriedFrame = _upscaleCounter;
-
-                    // If still in retry period (70 frames)
-                    if ((_upscaleCounter - info->retryStartFrame) < 69)
-                    {
-                        // and used at least 20 times (around every 3rd frame)
-                        // try reusing the resource
-                        if (info->retryCount > 19)
+                        // start retry period
+                        if (info->retryStartFrame == 0)
                         {
-                            LOG_WARN(
-                                "Reusing {:X} as hudless, retry start frame: {}, current frame: {}, reuse count: {}",
-                                (size_t) resource->buffer, info->retryStartFrame, _upscaleCounter, info->retryCount);
+                            LOG_WARN("Retry for {:X} as hudless, current frame: {}", (size_t) resource->buffer,
+                                     _upscaleCounter);
+                            info->retryStartFrame = _upscaleCounter;
+                            info->lastTriedFrame = _upscaleCounter;
+                            info->retryCount = 0;
+                            break;
+                        }
 
-                            info->lastUsedFrame = _upscaleCounter;
-                            info->retryStartFrame = 0;
+                        info->retryCount++;
+                        info->lastTriedFrame = _upscaleCounter;
+
+                        // If still in retry period (70 frames)
+                        if ((_upscaleCounter - info->retryStartFrame) < 69)
+                        {
+                            // and used at least 20 times (around every 3rd frame)
+                            // try reusing the resource
+                            if (info->retryCount > 19)
+                            {
+                                LOG_WARN("Reusing {:X} as hudless, retry start frame: {}, current frame: {}, reuse "
+                                         "count: {}",
+                                         (size_t) resource->buffer, info->retryStartFrame, _upscaleCounter,
+                                         info->retryCount);
+
+                                info->lastUsedFrame = _upscaleCounter;
+                                info->retryStartFrame = 0;
+                                info->useCount = 0;
+                                info->retryCount = 0;
+                                info->ignore = false;
+                                info->reuseCount++;
+                            }
+                        }
+                        else
+                        {
+                            // Retry period ended without success, reset values
+
+                            LOG_WARN("Retry failed for {:X} as hudless, current frame: {}", (size_t) resource->buffer,
+                                     _upscaleCounter);
+
                             info->useCount = 0;
                             info->retryCount = 0;
-                            info->ignore = false;
-                            info->reuseCount++;
+                            info->retryStartFrame = 0;
                         }
                     }
-                    else
-                    {
-                        // Retry period ended without success, reset values
-
-                        LOG_WARN("Retry failed for {:X} as hudless, current frame: {}", (size_t) resource->buffer,
-                                 _upscaleCounter);
-
-                        info->useCount = 0;
-                        info->retryCount = 0;
-                        info->retryStartFrame = 0;
-                    }
                 }
-            }
 
-            // directly ignore
-            if (info->ignore)
-                break;
+                // directly ignore
+                if (info->ignore)
+                    break;
 
-            // if buffer is not used in last 5 frames stop using it
-            if ((_upscaleCounter - info->lastUsedFrame) > 6 && info->useCount < 100)
-            {
-                LOG_WARN("Blocked {:X} as hudless, last used frame: {}, current frame: {}, use count: {}",
-                         (size_t) resource->buffer, info->lastUsedFrame, _upscaleCounter, info->useCount);
+                // if buffer is not used in last 5 frames stop using it
+                if ((_upscaleCounter - info->lastUsedFrame) > 6 && info->useCount < 100)
+                {
+                    LOG_WARN("Blocked {:X} as hudless, last used frame: {}, current frame: {}, use count: {}",
+                             (size_t) resource->buffer, info->lastUsedFrame, _upscaleCounter, info->useCount);
 
-                info->ignore = true;
-                info->retryCount = 0;
-                info->lastTriedFrame = 0;
-                info->retryStartFrame = 0;
+                    info->ignore = true;
+                    info->retryCount = 0;
+                    info->lastTriedFrame = 0;
+                    info->retryStartFrame = 0;
+                    info->lastUsedFrame = _upscaleCounter;
+
+                    // don't reuse more than 2 times
+                    if (info->reuseCount > 1)
+                        info->dontReuse = true;
+
+                    break;
+                }
+
+                // update the info
                 info->lastUsedFrame = _upscaleCounter;
-
-                // don't reuse more than 2 times
-                if (info->reuseCount > 1)
-                    info->dontReuse = true;
-
-                break;
+                info->useCount++;
             }
-
-            // update the info
-            info->lastUsedFrame = _upscaleCounter;
-            info->useCount++;
-        }
-        else
-        {
-            _hudlessList[resource->buffer] = { _upscaleCounter, 0, 0, 0, 0, 1, false, false };
+            else
+            {
+                _hudlessList[resource->buffer] = { _upscaleCounter, 0, 0, 0, 0, 1, false, false };
+            }
         }
 
         if (!CheckCapture())

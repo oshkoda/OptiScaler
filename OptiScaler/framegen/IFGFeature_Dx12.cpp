@@ -191,6 +191,7 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
     if (cmdList == nullptr && !makeCopy)
     {
         _paramHudless[index] = hudless;
+        SetHudlessReady();
         return;
     }
 
@@ -198,6 +199,8 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
         _paramHudless[index] = _paramHudlessCopy[index];
     else
         _paramHudless[index] = hudless;
+
+    SetHudlessReady();
 }
 
 void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
@@ -313,11 +316,11 @@ bool IFGFeature_Dx12::ExecuteHudlessCmdList()
     return false;
 }
 
-void IFGFeature_Dx12::MVandDepthReady() { _mvAndDepthReady = true; }
+void IFGFeature_Dx12::SetVelocityAndDepthReady() { _mvAndDepthReady = true; }
 
-void IFGFeature_Dx12::HudlessReady() { _hudlessReady = true; }
+void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady = true; }
 
-void IFGFeature_Dx12::HudlessDispatchReady() { _hudlessDispatchReady = true; }
+void IFGFeature_Dx12::SetHudlessDispatchReady() { _hudlessDispatchReady = true; }
 
 void IFGFeature_Dx12::Present()
 {
@@ -338,4 +341,5 @@ void IFGFeature_Dx12::Present()
 }
 
 bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady; }
+bool IFGFeature_Dx12::HudlessReady() { return _hudlessReady; }
 bool IFGFeature_Dx12::ReadyForExecute() { return _mvAndDepthReady && _hudlessReady; }

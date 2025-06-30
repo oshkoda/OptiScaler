@@ -60,7 +60,7 @@ UINT64 FSRFG_Dx12::UpscaleStart()
 {
     _frameCount++;
 
-    if (IsActive())
+    if (!State::Instance().isShuttingDown && IsActive())
     {
         auto frameIndex = GetIndex();
 
@@ -396,7 +396,7 @@ bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
         //}
 
         if (retCode == FFX_API_RETURN_OK)
-            HudlessDispatchReady();
+            SetHudlessDispatchReady();
     }
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default() && Mutex.getOwner() == 1)

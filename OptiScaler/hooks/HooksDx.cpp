@@ -199,8 +199,9 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 {
     if (State::Instance().isShuttingDown)
     {
-        auto result = o_FGSCPresent(This, SyncInterval, Flags);
-        return result;
+        return S_OK;
+        // auto result = o_FGSCPresent(This, SyncInterval, Flags);
+        // return result;
     }
 
     auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);

@@ -31,19 +31,21 @@ class IFGFeature
 
   public:
     OwnedMutex Mutex;
-    // std::mutex CallbackMutex;
 
     virtual feature_version Version() = 0;
     virtual const char* Name() = 0;
 
     virtual UINT64 UpscaleStart() = 0;
     virtual void UpscaleEnd() = 0;
-    virtual void MVandDepthReady() = 0;
-    virtual void HudlessReady() = 0;
-    virtual void HudlessDispatchReady() = 0;
-    virtual bool UpscalerInputsReady() = 0;
-    virtual bool ReadyForExecute() = 0;
     virtual void Present() = 0;
+
+    virtual void SetVelocityAndDepthReady() = 0;
+    virtual void SetHudlessReady() = 0;
+    virtual void SetHudlessDispatchReady() = 0;
+
+    virtual bool UpscalerInputsReady() = 0;
+    virtual bool HudlessReady() = 0;
+    virtual bool ReadyForExecute() = 0;
 
     virtual void FgDone() = 0;
     virtual void ReleaseObjects() = 0;

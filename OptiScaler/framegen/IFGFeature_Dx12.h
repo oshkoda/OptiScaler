@@ -73,10 +73,11 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     IFGFeature_Dx12() = default;
 
     // Inherited via IFGFeature
-    void MVandDepthReady() override;
-    void HudlessReady() override;
-    void HudlessDispatchReady() override;
+    void SetVelocityAndDepthReady() override;
+    void SetHudlessReady() override;
+    void SetHudlessDispatchReady() override;
     void Present() override;
     bool UpscalerInputsReady() override;
+    bool HudlessReady() override;
     bool ReadyForExecute() override;
 };

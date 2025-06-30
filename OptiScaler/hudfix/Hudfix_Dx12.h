@@ -118,7 +118,7 @@ class Hudfix_Dx12
 
     // Check resource for hudless
     static bool CheckForHudless(std::string callerName, ID3D12GraphicsCommandList* cmdList, ResourceInfo* resource,
-                                D3D12_RESOURCE_STATES state);
+                                D3D12_RESOURCE_STATES state, bool ignoreBlocked = false);
     static bool CheckResource(ResourceInfo* resource);
 
     // Reset frame counters

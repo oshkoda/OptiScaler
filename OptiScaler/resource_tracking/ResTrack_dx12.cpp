@@ -123,7 +123,7 @@ static thread_local HeapCacheTLS cacheCR;
 
 bool ResTrack_Dx12::CheckResource(ID3D12Resource* resource)
 {
-    if (State::Instance().currentSwapchain == nullptr)
+    if (State::Instance().currentSwapchain == nullptr || State::Instance().isShuttingDown)
         return false;
 
     DXGI_SWAP_CHAIN_DESC scDesc {};
@@ -739,38 +739,45 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
         {
             LOG_DEBUG_ONLY("cmdlist[{}]: {:X}", i, (size_t) ppCommandLists[i]);
 
-            if (_commandList != nullptr && ppCommandLists[i] == _commandList)
-            {
-                LOG_DEBUG("Hudless cmdlist, {}", fg->FrameCount());
-                fg->HudlessReady();
-                _commandList = nullptr;
-            }
+            // if (_commandList != nullptr && ppCommandLists[i] == _commandList)
+            //{
+            //     LOG_DEBUG("Hudless cmdlist, {}", fg->FrameCount());
+            //     fg->SetHudlessReady();
+            //     _commandList = nullptr;
+            // }
 
             if (_upscalerCommandList != nullptr && ppCommandLists[i] == _upscalerCommandList)
             {
                 LOG_DEBUG("Upscaler cmdlist, {}", fg->FrameCount());
-                fg->MVandDepthReady();
+                fg->SetVelocityAndDepthReady();
                 _upscalerCommandList = nullptr;
+
+                if (State::Instance().activeFgType == OptiFG && fg->IsActive() &&
+                    fg->TargetFrame() < fg->FrameCount() && fg->HudlessReady())
+                {
+                    State::Instance().fgTrigSource = "ExecuteCmdList";
+                    fg->ExecuteHudlessCmdList();
+                }
             }
         }
     }
 
-    if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
-        fg->ReadyForExecute())
-    {
-        State::Instance().fgTrigSource = "Immediate";
-        fg->ExecuteHudlessCmdList();
-    }
-    else if (Config::Instance()->FGWaitForNextExecute.value_or_default())
-    {
-        if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
-            fg->ReadyForExecute())
-        {
-            LOG_DEBUG("Next execute dispatch fg");
-            State::Instance().fgTrigSource = "Next";
-            fg->ExecuteHudlessCmdList();
-        }
-    }
+    // if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
+    //     fg->ReadyForExecute())
+    //{
+    //     State::Instance().fgTrigSource = "Immediate";
+    //     fg->ExecuteHudlessCmdList();
+    // }
+    // else if (Config::Instance()->FGWaitForNextExecute.value_or_default())
+    //{
+    //     if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
+    //         fg->ReadyForExecute())
+    //     {
+    //         LOG_DEBUG("Next execute dispatch fg");
+    //         State::Instance().fgTrigSource = "Next";
+    //         fg->ExecuteHudlessCmdList();
+    //     }
+    // }
 }
 
 #pragma region Heap hooks
@@ -1187,11 +1194,13 @@ void ResTrack_Dx12::hkSetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* 
 
     do
     {
-        if (Config::Instance()->FGImmediateCapture.value_or_default() &&
-            Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+        if (Config::Instance()->FGImmediateCapture.value_or_default())
         {
-            _commandList = This;
-            break;
+            if (Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+            {
+                _commandList = This;
+                break;
+            }
         }
 
         {
@@ -1280,11 +1289,13 @@ void ResTrack_Dx12::hkOMSetRenderTargets(ID3D12GraphicsCommandList* This, UINT N
             LOG_DEBUG_ONLY("CommandList: {:X}", (size_t) This);
             capturedBuffer->state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-            if (Config::Instance()->FGImmediateCapture.value_or_default() &&
-                Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+            if (Config::Instance()->FGImmediateCapture.value_or_default())
             {
-                _commandList = This;
-                break;
+                if (Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+                {
+                    _commandList = This;
+                    break;
+                }
             }
 
             auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
@@ -1359,11 +1370,13 @@ void ResTrack_Dx12::hkSetComputeRootDescriptorTable(ID3D12GraphicsCommandList* T
 
     do
     {
-        if (Config::Instance()->FGImmediateCapture.value_or_default() &&
-            Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+        if (Config::Instance()->FGImmediateCapture.value_or_default())
         {
-            _commandList = This;
-            break;
+            if (Hudfix_Dx12::CheckForHudless(__FUNCTION__, This, capturedBuffer, capturedBuffer->state))
+            {
+                _commandList = This;
+                break;
+            }
         }
 
         {
