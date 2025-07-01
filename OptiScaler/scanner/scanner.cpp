@@ -7,10 +7,9 @@ struct SectionRange
     BYTE *start, *end;
 };
 
-std::vector<SectionRange> GetExecSections(const std::wstring_view moduleName)
+std::vector<SectionRange> GetExecSections(HMODULE hMod)
 {
     std::vector<SectionRange> secs;
-    HMODULE hMod = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
 
     if (hMod == nullptr)
         return secs;
@@ -86,9 +85,13 @@ uintptr_t scanner::FindPattern(uintptr_t startAddress, uintptr_t maxSize, const 
 uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::string_view pattern, ptrdiff_t offset,
                               uintptr_t startAddress)
 {
-    uintptr_t address;
-    // auto module = GetModule(moduleName.data());
-    auto sections = GetExecSections(moduleName.data());
+    uintptr_t address = NULL;
+    auto module = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
+
+    if (module == nullptr)
+        return NULL;
+
+    auto sections = GetExecSections(module);
 
     if (startAddress != 0)
     {
@@ -140,10 +143,26 @@ uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::str
 uintptr_t scanner::GetOffsetFromInstruction(const std::wstring_view moduleName, const std::string_view pattern,
                                             ptrdiff_t offset)
 {
-    auto module = GetModule(moduleName.data());
-    uintptr_t address = FindPattern(module.first, module.second - module.first, pattern.data());
+    auto module = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
 
-    if ((GetModuleHandleW(moduleName.data()) != nullptr) && (address != NULL))
+    if (module == nullptr)
+        return NULL;
+
+    uintptr_t address = NULL;
+
+    auto sections = GetExecSections(module);
+
+    for (size_t i = 0; i < sections.size(); i++)
+    {
+        auto section = &sections[i];
+        address = FindPattern((uintptr_t) section->start, (uintptr_t) section->end - (uintptr_t) section->start,
+                              pattern.data());
+
+        if (address != NULL)
+            break;
+    }
+
+    if (address != NULL)
     {
         auto reloffset = *reinterpret_cast<int32_t*>(address + offset) + sizeof(int32_t);
         return (address + offset + reloffset);
