@@ -93,6 +93,10 @@ static const QuirkEntry quirkTable[] = {
     // Bloom and Rage
     QUIRK_ENTRY("bloom&rage.exe", GameQuirk::DisableFSR3Inputs),
 
+    // Star Wars: Outlaws
+    QUIRK_ENTRY("outlaws.exe", GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("outlaws_plus.exe", GameQuirk::DisableFSR3Inputs),
+
     // Self-explanatory
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG),
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
