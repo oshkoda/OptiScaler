@@ -114,13 +114,6 @@ For more information on OptiFG and how to use it, please check the Wiki page - [
 > [!IMPORTANT]
 > **For installation steps, please check the [**Wiki**](https://github.com/optiscaler/OptiScaler/wiki)**  
 
-## Signed Builds
-Thanks to
-[SignPath.io](https://signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=vim)
-for providing a free code signing service and to the [SignPath
-Foundation](https://signpath.org?utm_source=foundation&utm_medium=github&utm_campaign=vim)
-for a free code signing certificate to sign the builds.
-
 ## Configuration
 Please check [this](Config.md) document for configuration parameters and explanations. If your GPU is not an Nvidia one, check [GPU spoofing options](Spoofing.md) *(Will be updated)*
 
@@ -157,3 +150,14 @@ Also check the community [Wiki](https://github.com/optiscaler/OptiScaler/wiki) f
 
 ## Credit
 This project uses [FreeType](https://gitlab.freedesktop.org/freetype/freetype) licensed under the [FTL](https://gitlab.freedesktop.org/freetype/freetype/-/blob/master/docs/FTL.TXT)
+
+## Sponsors
+<table>
+ <tbody>
+  <tr>
+   <td align="center"><img alt="[SignPath]" src="https://avatars.githubusercontent.com/u/34448643" height="30"/></td>
+   <td>Free code signing on Windows provided by <a href="https://signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a></td>
+  </tr>
+ </tbody>
+</table>
+
