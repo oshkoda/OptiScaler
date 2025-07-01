@@ -1,14 +1,16 @@
 #pragma once
 
-#include <flag-set-cpp/flag_set.hpp>
 #include "pch.h"
 
-enum class GameQuirk
+#include <flag-set-cpp/flag_set.hpp>
+
+enum class GameQuirk : uint64_t
 {
     // Config-level quirks, de facto customized defaults
     ForceNoOptiFG,
     DisableFSR3Inputs,
-    DisableFSR2PatternInputs,
+    DisableFSR2Inputs,
+    DisableFFXInputs,
     RestoreComputeSigOnNonNvidia,
 
     // Quirks that are applied deeper in code
@@ -36,9 +38,13 @@ struct QuirkEntry
 
 // exeName has to be lowercase
 static const QuirkEntry quirkTable[] = {
-    // Red Dead Redemption 2
+    // Red Dead Redemption
     QUIRK_ENTRY("rdr.exe", GameQuirk::SkipFsr3Method, GameQuirk::ForceNoOptiFG),
     QUIRK_ENTRY("playrdr.exe", GameQuirk::SkipFsr3Method, GameQuirk::ForceNoOptiFG),
+
+    // Red Dead Redemption 2
+    QUIRK_ENTRY("rdr.exe2", GameQuirk::DisableFSR2Inputs),
+    QUIRK_ENTRY("playrdr2.exe", GameQuirk::DisableFSR2Inputs),
 
     // No Man's Sky
     QUIRK_ENTRY("nms.exe", GameQuirk::KernelBaseHooks, GameQuirk::VulkanDLSSBarrierFixup),
@@ -54,8 +60,10 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
+
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
+
     // Dragon's Dogma 2
     QUIRK_ENTRY("dd2ccs.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
     QUIRK_ENTRY("dd2.exe", GameQuirk::RestoreComputeSigOnNonNvidia),
@@ -63,9 +71,32 @@ static const QuirkEntry quirkTable[] = {
     // Forgive Me Father 2
     QUIRK_ENTRY("fmf2-win64-shipping.exe", GameQuirk::DisableFSR3Inputs),
 
+    // Revenge of the Savage Planet
+    QUIRK_ENTRY("towers-win64-shipping.exe", GameQuirk::DisableFSR3Inputs),
+
+    // Avatar: Frontiers of Pandora
+    QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR3Inputs),
+
+    // Forza Motorsport 8
+    QUIRK_ENTRY("forza_steamworks_release_final.exe", GameQuirk::DisableFSR2Inputs),         // Steam
+    QUIRK_ENTRY("forza_gaming.desktop.x64_release_final.exe", GameQuirk::DisableFSR2Inputs), // MS Store
+
+    // F1 22
+    QUIRK_ENTRY("f1_22.exe", GameQuirk::DisableFSR2Inputs),
+
+    // Metal Eden
+    QUIRK_ENTRY("metaleden-win64-shipping.exe", GameQuirk::DisableFSR3Inputs),
+
+    // Until Dawn
+    QUIRK_ENTRY("bates-win64-shipping.exe", GameQuirk::DisableFSR3Inputs),
+
+    // Bloom and Rage
+    QUIRK_ENTRY("bloom&rage.exe", GameQuirk::DisableFSR3Inputs),
+
+    // Self-explanatory
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG),
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
-    QUIRK_ENTRY("banishers-win64-shipping.exe", GameQuirk::DisableFSR2PatternInputs),
+    QUIRK_ENTRY("banishers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
 };
@@ -107,8 +138,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Disabling OptiFG");
     if (quirks & GameQuirk::DisableFSR3Inputs)
         spdlog::info("Quirk: Disable FSR 3.0 Inputs");
-    if (quirks & GameQuirk::DisableFSR2PatternInputs)
-        spdlog::info("Quirk: Disable FSR 2 Pattern Inputs");
+    if (quirks & GameQuirk::DisableFSR2Inputs)
+        spdlog::info("Quirk: Disable FSR 2.X Inputs");
     if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia)
         spdlog::info("Quirk: Enabling restore compute signature on AMD/Intel");
 

@@ -927,14 +927,14 @@ static void CheckQuirks()
     if (quirks & GameQuirk::ForceNoOptiFG && Config::Instance()->FGType.value_or_default() == FGType::OptiFG)
         Config::Instance()->FGType.set_volatile_value(FGType::NoFG);
 
-    if (quirks & GameQuirk::DisableFSR3Inputs && !Config::Instance()->UseFsr3Inputs.has_value())
+    if (quirks & GameQuirk::DisableFSR3Inputs && !Config::Instance()->EnableFsr3Inputs.has_value())
         Config::Instance()->UseFsr3Inputs.set_volatile_value(false);
 
-    if (quirks & GameQuirk::DisableFSR3Inputs && !Config::Instance()->Fsr3Pattern.has_value())
-        Config::Instance()->Fsr3Pattern.set_volatile_value(false);
+    if (quirks & GameQuirk::DisableFSR2Inputs && !Config::Instance()->EnableFsr2Inputs.has_value())
+        Config::Instance()->UseFsr2Inputs.set_volatile_value(false);
 
-    if (quirks & GameQuirk::DisableFSR2PatternInputs && !Config::Instance()->Fsr2Pattern.has_value())
-        Config::Instance()->Fsr2Pattern.set_volatile_value(false);
+    if (quirks & GameQuirk::DisableFFXInputs && !Config::Instance()->EnableFfxInputs.has_value())
+        Config::Instance()->EnableFfxInputs.set_volatile_value(false);
 
     if (quirks & GameQuirk::RestoreComputeSigOnNonNvidia && !State::Instance().isRunningOnNvidia &&
         !Config::Instance()->DxgiSpoofing.value_or_default() &&
