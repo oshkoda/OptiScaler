@@ -87,6 +87,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D11_Init_Ext(unsigned long long InApp
         D3D11Device = InDevice;
 
     State::Instance().api = DX11;
+    State::Instance().currentD3D11Device = InDevice;
 
     // Create Disjoint Query
     D3D11_QUERY_DESC disjointQueryDesc = {};

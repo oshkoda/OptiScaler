@@ -35,7 +35,7 @@ class State
 
     std::string GameName;
     std::string GameExe;
-    std::string GpuName;
+    ankerl::unordered_dense::map<void*, std::string> DeviceAdapterNames;
 
     bool NvngxDx11Inited = false;
     bool NvngxDx12Inited = false;
@@ -172,6 +172,7 @@ class State
     ID3D12Device* currentD3D12Device = nullptr;
     ID3D11Device* currentD3D11Device = nullptr;
     ID3D12CommandQueue* currentCommandQueue = nullptr;
+    VkDevice currentVkDevice = nullptr;
 
     std::vector<ID3D12Device*> d3d12Devices;
     std::vector<ID3D11Device*> d3d11Devices;

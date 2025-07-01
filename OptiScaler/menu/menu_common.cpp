@@ -1777,7 +1777,9 @@ bool MenuCommon::RenderMenu()
                     switch (State::Instance().api)
                     {
                     case DX11:
-                        ImGui::Text(State::Instance().GpuName.c_str());
+                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D11Device))
+                            ImGui::Text(
+                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D11Device].c_str());
 
                         ImGui::Text("D3D11 %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
                                     State::Instance().currentFeature->Name().c_str(),
@@ -1795,7 +1797,9 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     case DX12:
-                        ImGui::Text(State::Instance().GpuName.c_str());
+                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D12Device))
+                            ImGui::Text(
+                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D12Device].c_str());
 
                         ImGui::Text("D3D12 %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
                                     State::Instance().currentFeature->Name().c_str(),
@@ -1815,7 +1819,9 @@ bool MenuCommon::RenderMenu()
                         break;
 
                     default:
-                        ImGui::Text(State::Instance().GpuName.c_str());
+                        if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentVkDevice))
+                            ImGui::Text(
+                                State::Instance().DeviceAdapterNames[State::Instance().currentVkDevice].c_str());
 
                         ImGui::Text("Vulkan %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
                                     State::Instance().currentFeature->Name().c_str(),

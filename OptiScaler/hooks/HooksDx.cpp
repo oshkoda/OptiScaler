@@ -571,6 +571,8 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
     // if (State::Instance().activeFgType == OptiFG && State::Instance().currentFG != nullptr)
     //     State::Instance().currentFG->CallbackMutex.unlock();
 
+    LOG_DEBUG("Done");
+
     return presentResult;
 }
 
@@ -1689,14 +1691,14 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
     }
 
     DXGI_ADAPTER_DESC desc {};
+    std::wstring szName;
     if (pAdapter != nullptr)
     {
         State::Instance().skipSpoofing = true;
         if (pAdapter->GetDesc(&desc) == S_OK)
         {
-            std::wstring szName(desc.Description);
+            szName = desc.Description;
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
-            State::Instance().GpuName = wstring_to_string(szName);
         }
         State::Instance().skipSpoofing = false;
     }
@@ -1716,7 +1718,7 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
     {
         LOG_INFO("Device captured");
         d3d11Device = *ppDevice;
-
+        State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
         HookToDevice(d3d11Device);
     }
 
@@ -1933,14 +1935,14 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
 #endif
 
     DXGI_ADAPTER_DESC desc {};
+    std::wstring szName;
     if (pAdapter != nullptr && MinimumFeatureLevel != D3D_FEATURE_LEVEL_1_0_CORE)
     {
         State::Instance().skipSpoofing = true;
         if (pAdapter->GetDesc(&desc) == S_OK)
         {
-            std::wstring szName(desc.Description);
+            szName = desc.Description;
             LOG_INFO("Adapter Desc: {}", wstring_to_string(szName));
-            State::Instance().GpuName = wstring_to_string(szName);
         }
         State::Instance().skipSpoofing = false;
     }
@@ -1966,6 +1968,7 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
     {
         LOG_DEBUG("Device captured: {0:X}", (size_t) *ppDevice);
         State::Instance().currentD3D12Device = (ID3D12Device*) *ppDevice;
+        State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
 
         if (desc.VendorId == 0x8086 && Config::Instance()->UESpoofIntelAtomics64.value_or_default())
         {

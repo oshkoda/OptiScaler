@@ -199,7 +199,7 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
         VkPhysicalDeviceProperties prop {};
         vkGetPhysicalDeviceProperties(physicalDevice, &prop);
-        State::Instance().GpuName = std::string(prop.deviceName);
+        State::Instance().DeviceAdapterNames[*pDevice] = std::string(prop.deviceName);
         State::Instance().skipSpoofing = false;
     }
 
