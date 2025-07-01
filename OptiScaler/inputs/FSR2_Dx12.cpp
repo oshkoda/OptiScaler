@@ -1092,10 +1092,12 @@ void HookFSR2ExeInputs()
         o_ffxFsr2GetRenderResolutionFromQualityMode_Dx12 =
             (PFN_ffxFsr2GetRenderResolutionFromQualityMode) KernelBaseProxy::GetProcAddress_()(
                 exeModule, "ffxFsr2GetRenderResolutionFromQualityMode");
+
         if (o_ffxFsr2GetRenderResolutionFromQualityMode_Dx12 == nullptr)
             o_ffxFsr2GetRenderResolutionFromQualityMode_Dx12 =
                 (PFN_ffxFsr2GetRenderResolutionFromQualityMode) KernelBaseProxy::GetProcAddress_()(
                     exeModule, "?ffxFsr2GetRenderResolutionFromQualityMode@@YAHPEAI0IIW4FfxFsr2QualityMode@@@Z");
+
         if (o_ffxFsr2GetRenderResolutionFromQualityMode_Dx12 == nullptr)
             o_ffxFsr2GetRenderResolutionFromQualityMode_Dx12 =
                 (PFN_ffxFsr2GetRenderResolutionFromQualityMode) KernelBaseProxy::GetProcAddress_()(
@@ -1126,6 +1128,8 @@ void HookFSR2ExeInputs()
     if (Config::Instance()->Fsr2Pattern.value_or_default())
     {
         std::wstring_view exeNameV(exeNameW.c_str());
+
+        // LOG_DEBUG("Pattern matching started");
 
         do
         {
@@ -1270,6 +1274,8 @@ void HookFSR2ExeInputs()
 
             LOG_DEBUG("ffxFsr2ContextDispatch_Pattern_Dx12: {:X}", (size_t) o_ffxFsr2ContextDispatch_Pattern_Dx12);
         } while (false);
+
+        // LOG_DEBUG("Pattern matching finished");
     }
 
     State::Instance().fsrHooks =

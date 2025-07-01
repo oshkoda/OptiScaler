@@ -2,6 +2,40 @@
 
 #include <proxies/KernelBase_Proxy.h>
 
+struct SectionRange
+{
+    BYTE *start, *end;
+};
+
+std::vector<SectionRange> GetExecSections(const std::wstring_view moduleName)
+{
+    std::vector<SectionRange> secs;
+    HMODULE hMod = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
+
+    if (hMod == nullptr)
+        return secs;
+
+    BYTE* base = reinterpret_cast<BYTE*>(hMod);
+    auto dos = reinterpret_cast<IMAGE_DOS_HEADER*>(base);
+    auto nt = reinterpret_cast<IMAGE_NT_HEADERS64*>(base + dos->e_lfanew);
+    auto first = IMAGE_FIRST_SECTION(nt);
+
+    for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i)
+    {
+        auto& s = first[i];
+
+        // filter for executable
+        if (s.Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        {
+            BYTE* start = base + s.VirtualAddress;
+            BYTE* end = start + s.Misc.VirtualSize;
+            secs.push_back({ start, end });
+        }
+    }
+
+    return secs;
+}
+
 std::pair<uintptr_t, uintptr_t> GetModule(const std::wstring_view moduleName)
 {
     const static uintptr_t moduleBase =
@@ -10,6 +44,7 @@ std::pair<uintptr_t, uintptr_t> GetModule(const std::wstring_view moduleName)
     {
         auto ntHeaders = reinterpret_cast<PIMAGE_NT_HEADERS64>(
             moduleBase + reinterpret_cast<PIMAGE_DOS_HEADER>(moduleBase)->e_lfanew);
+
         return static_cast<uintptr_t>(moduleBase + ntHeaders->OptionalHeader.SizeOfImage);
     }();
 
@@ -52,12 +87,44 @@ uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::str
                               uintptr_t startAddress)
 {
     uintptr_t address;
+    // auto module = GetModule(moduleName.data());
+    auto sections = GetExecSections(moduleName.data());
 
     if (startAddress != 0)
-        address = FindPattern(startAddress, GetModule(moduleName.data()).second - startAddress, pattern.data());
+    {
+        for (size_t i = 0; i < sections.size(); i++)
+        {
+            auto section = &sections[i];
+
+            if (((uintptr_t) section->start < startAddress && (uintptr_t) section->end > startAddress))
+            {
+                address = FindPattern(startAddress, (uintptr_t) section->end - startAddress, pattern.data());
+
+                if (address != NULL)
+                    break;
+            }
+            else if ((uintptr_t) section->start > startAddress)
+            {
+                address = FindPattern((uintptr_t) section->start, (uintptr_t) section->end - (uintptr_t) section->start,
+                                      pattern.data());
+
+                if (address != NULL)
+                    break;
+            }
+        }
+    }
     else
-        address = FindPattern(GetModule(moduleName.data()).first,
-                              GetModule(moduleName.data()).second - GetModule(moduleName.data()).first, pattern.data());
+    {
+        for (size_t i = 0; i < sections.size(); i++)
+        {
+            auto section = &sections[i];
+            address = FindPattern((uintptr_t) section->start, (uintptr_t) section->end - (uintptr_t) section->start,
+                                  pattern.data());
+
+            if (address != NULL)
+                break;
+        }
+    }
 
     // Use KernelBaseProxy::GetModuleHandleW_() ?
     if ((GetModuleHandleW(moduleName.data()) != nullptr) && (address != NULL))
@@ -73,9 +140,8 @@ uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::str
 uintptr_t scanner::GetOffsetFromInstruction(const std::wstring_view moduleName, const std::string_view pattern,
                                             ptrdiff_t offset)
 {
-    uintptr_t address =
-        FindPattern(GetModule(moduleName.data()).first,
-                    GetModule(moduleName.data()).second - GetModule(moduleName.data()).first, pattern.data());
+    auto module = GetModule(moduleName.data());
+    uintptr_t address = FindPattern(module.first, module.second - module.first, pattern.data());
 
     if ((GetModuleHandleW(moduleName.data()) != nullptr) && (address != NULL))
     {
