@@ -943,6 +943,12 @@ static void CheckQuirks()
         Config::Instance()->RestoreComputeSignature.set_volatile_value(true);
     }
 
+    if (quirks & GameQuirk::DisableReactiveMasks)
+        Config::Instance()->DisableReactiveMask.set_volatile_value(true);
+
+    if (quirks & GameQuirk::ForceAutoExposure)
+        Config::Instance()->AutoExposure.set_volatile_value(true);
+
     State::Instance().gameQuirks = quirks;
 }
 
