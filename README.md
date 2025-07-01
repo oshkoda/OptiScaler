@@ -114,6 +114,12 @@ For more information on OptiFG and how to use it, please check the Wiki page - [
 > [!IMPORTANT]
 > **For installation steps, please check the [**Wiki**](https://github.com/optiscaler/OptiScaler/wiki)**  
 
+## Signed Builds
+Thanks to
+[SignPath.io](https://signpath.io?utm_source=foundation&utm_medium=github&utm_campaign=vim)
+for providing a free code signing service and to the [SignPath
+Foundation](https://signpath.org?utm_source=foundation&utm_medium=github&utm_campaign=vim)
+for a free code signing certificate to sign the builds.
 
 ## Configuration
 Please check [this](Config.md) document for configuration parameters and explanations. If your GPU is not an Nvidia one, check [GPU spoofing options](Spoofing.md) *(Will be updated)*
