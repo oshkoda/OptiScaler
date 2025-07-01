@@ -66,7 +66,7 @@ OptiScaler implements the necessary API methods of DLSS2+ & NVAPI, XeSS and FSR2
 > [!NOTE]
 > Pressing **`Insert`** should open the OptiScaler **Overlay** in-game with all of the options (`ShortcutKey=` can be changed in the config file). Pressing **`Page Up`** shows the performance stats overlay in the top left, and can be cycled between different modes with **`Page Down`**.
 
-![diagram](https://github.com/user-attachments/assets/06f028e1-62bd-4693-bc4c-912772076579)
+![inputs_outputs](https://github.com/user-attachments/assets/053c9cbb-16c8-4634-9ae5-f8d304dd7cdd)
 
 ## Which APIs and Upscalers are Supported?
 Currently **OptiScaler** can be used with DirectX 11, DirectX 12 and Vulkan, but each API has different sets of supported upscalers.  
