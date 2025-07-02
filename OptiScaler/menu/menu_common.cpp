@@ -35,6 +35,25 @@ static std::string selectedUpscalerName = "";
 static std::string currentBackend = "";
 static std::string currentBackendName = "";
 
+static ImVec2 splashPosition(-1000.0f, -1000.0f);
+static double splashStart = 0.0;
+static double splashLimit = 0.0;
+static std::vector<std::string> splashText = { "May the coping commence...",
+                                               "Coping is strong with this one...",
+                                               "This is where the fun begins...",
+                                               "Got any more of them scalers?...",
+                                               "Fake pixels and even faker frames...",
+                                               "Fake frames, get your fake frames...",
+                                               "I'm here to kick pixels and chew frames...",
+                                               "I find your lack of supersampling disturbing...",
+                                               "Frame by frame, I scale—up!",
+                                               "Resistance is futile. Your pixels will be upscaled.",
+                                               "I’ve got 99 problems, but low-res ain’t one.",
+                                               "It's over, DLSS, I have the higher ground!",
+                                               "This isn't the resolution you're looking for.",
+                                               "To infinity and beyond... with ray tracing off.",
+                                               "I have a bad feeling about this frame pacing." };
+
 void MenuCommon::ShowTooltip(const char* tip)
 {
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
@@ -1335,6 +1354,98 @@ bool MenuCommon::RenderMenu()
         inputFpsCycle = false;
     }
 
+    bool frameStarted = false;
+    bool frameTimesCalculated = false;
+    const double splashTime = 7000.0;
+    const double fadeTime = 1000.0;
+    static std::string splashMessage;
+
+    // Splash screen
+    if (!Config::Instance()->DisableSplash.value_or_default())
+    {
+        if (splashLimit < 1.0f)
+        {
+            splashStart = now + 100.0;
+            splashLimit = splashStart + splashTime;
+
+            std::srand(static_cast<unsigned>(std::time(nullptr)));
+            splashMessage = splashText[std::rand() % splashText.size()];
+        }
+
+        if (now > splashStart && now < splashLimit)
+        {
+            if (!_isUWP)
+            {
+                ImGui_ImplWin32_NewFrame();
+            }
+            else if (!newFrame)
+            {
+                ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
+                ImGui_ImplUwp_NewFrame(displaySize);
+            }
+
+            MenuHdrCheck(io);
+            MenuSizeCheck(io);
+            ImGui::NewFrame();
+
+            ImGui::SetNextWindowSize({ 0.0f, 0.0f });
+            ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+            ImGui::SetNextWindowPos(splashPosition, ImGuiCond_Always);
+
+            float windowAlpha = 1.0f;
+            if (auto diff = now - splashStart; diff < fadeTime)
+                windowAlpha = diff / fadeTime;
+            else if (auto diff = splashLimit - now; diff < fadeTime)
+                windowAlpha = diff / fadeTime;
+
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, windowAlpha);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 8));
+            ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));  // Transparent border
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0)); // Transparent frame background
+
+            if (ImGui::Begin("Splash", nullptr,
+                             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
+                                 ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing |
+                                 ImGuiWindowFlags_NoNav))
+            {
+                float splashScale = 1.0f;
+                float baseScaleHeight = 720.0f;
+
+                if (io.DisplaySize.y > baseScaleHeight)
+                    splashScale = io.DisplaySize.y / baseScaleHeight;
+
+                if (Config::Instance()->UseHQFont.value_or_default())
+                    ImGui::PushFontSize(std::round(splashScale * fontSize));
+                else
+                    ImGui::SetWindowFontScale(splashScale);
+
+                ImGui::Text("OptiScaler");
+                ImGui::TextColored(toneMapColor(ImVec4(1.0, 1.0, 1.0, 0.7)), splashMessage.c_str());
+
+                auto splashWinSize = ImGui::GetWindowSize();
+
+                if (Config::Instance()->UseHQFont.value_or_default())
+                    ImGui::PopFontSize();
+
+                ImGui::End();
+
+                splashPosition.x = 0.0f; // io.DisplaySize.x - splashWinSize.x;
+                splashPosition.y = io.DisplaySize.y - splashWinSize.y;
+            }
+
+            ImGui::PopStyleColor(2);
+            ImGui::PopStyleVar(2);
+
+            frameStarted = true;
+
+            if (!_isVisible && !Config::Instance()->ShowFps.value_or_default())
+            {
+                ImGui::EndFrame();
+                return true;
+            }
+        }
+    }
+
     // FPS Overlay font
     auto fpsScale = Config::Instance()->FpsScale.value_or(Config::Instance()->MenuScale.value_or_default());
 
@@ -1362,20 +1473,24 @@ bool MenuCommon::RenderMenu()
 
         frameTime /= frameCnt;
         frameRate = 1000.0 / frameTime;
+        frameTimesCalculated = true;
 
-        if (!_isUWP)
+        if (!frameStarted)
         {
-            ImGui_ImplWin32_NewFrame();
-        }
-        else if (!newFrame)
-        {
-            ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
-            ImGui_ImplUwp_NewFrame(displaySize);
-        }
+            if (!_isUWP)
+            {
+                ImGui_ImplWin32_NewFrame();
+            }
+            else if (!newFrame)
+            {
+                ImVec2 displaySize { State::Instance().screenWidth, State::Instance().screenHeight };
+                ImGui_ImplUwp_NewFrame(displaySize);
+            }
 
-        MenuHdrCheck(io);
-        MenuSizeCheck(io);
-        ImGui::NewFrame();
+            MenuHdrCheck(io);
+            MenuSizeCheck(io);
+            ImGui::NewFrame();
+        }
 
         State::Instance().frameTimeMutex.lock();
         std::vector<float> frameTimeArray(State::Instance().frameTimes.begin(), State::Instance().frameTimes.end());
@@ -1571,7 +1686,7 @@ bool MenuCommon::RenderMenu()
         else
             overlayPosition.x = io.DisplaySize.x - winSize.x;
 
-        // Top Left / Top Right
+        // Top Right / Bottom right
         if (Config::Instance()->FpsOverlayPos.value_or_default() < 2)
             overlayPosition.y = 0;
         else
@@ -1593,7 +1708,7 @@ bool MenuCommon::RenderMenu()
             ImGui::PushFontSize(std::round(Config::Instance()->MenuScale.value_or_default() * fontSize));
 
         // If overlay is not visible frame needs to be inited
-        if (!Config::Instance()->ShowFps.value_or_default())
+        if (!frameTimesCalculated)
         {
             float frameCnt = 0;
             frameTime = 0;
@@ -1608,7 +1723,10 @@ bool MenuCommon::RenderMenu()
 
             frameTime /= frameCnt;
             frameRate = 1000.0 / frameTime;
+        }
 
+        if (!frameStarted)
+        {
             if (!_isUWP)
             {
                 ImGui_ImplWin32_NewFrame();
