@@ -199,7 +199,12 @@ static VkResult hkvkCreateDevice(VkPhysicalDevice physicalDevice, const VkDevice
 
         VkPhysicalDeviceProperties prop {};
         vkGetPhysicalDeviceProperties(physicalDevice, &prop);
-        State::Instance().DeviceAdapterNames[*pDevice] = std::string(prop.deviceName);
+
+        auto szName = std::string(prop.deviceName);
+
+        if (szName.size() > 0)
+            State::Instance().DeviceAdapterNames[*pDevice] = szName;
+
         State::Instance().skipSpoofing = false;
     }
 

@@ -1718,7 +1718,10 @@ static HRESULT hkD3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE Drive
     {
         LOG_INFO("Device captured");
         d3d11Device = *ppDevice;
-        State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
+
+        if (szName.size() > 0)
+            State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
+
         HookToDevice(d3d11Device);
     }
 
@@ -1968,7 +1971,9 @@ static HRESULT hkD3D12CreateDevice(IDXGIAdapter* pAdapter, D3D_FEATURE_LEVEL Min
     {
         LOG_DEBUG("Device captured: {0:X}", (size_t) *ppDevice);
         State::Instance().currentD3D12Device = (ID3D12Device*) *ppDevice;
-        State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
+
+        if (szName.size() > 0)
+            State::Instance().DeviceAdapterNames[*ppDevice] = wstring_to_string(szName);
 
         if (desc.VendorId == 0x8086 && Config::Instance()->UESpoofIntelAtomics64.value_or_default())
         {
