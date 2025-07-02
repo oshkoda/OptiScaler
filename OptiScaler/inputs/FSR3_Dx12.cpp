@@ -623,16 +623,13 @@ void HookFSR3ExeInputs()
 {
     LOG_INFO("Trying to hook FSR3 methods");
 
-    auto exeNameW = Util::ExePath().filename();
-    auto exeName = wstring_to_string(exeNameW);
-
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
     if (o_ffxFsr3UpscalerContextCreate_Dx12 == nullptr)
     {
-        o_ffxFsr3UpscalerContextCreate_Dx12 =
-            (PFN_ffxFsr3UpscalerContextCreate) DetourFindFunction(exeName.c_str(), "ffxFsr3UpscalerContextCreate");
+        o_ffxFsr3UpscalerContextCreate_Dx12 = (PFN_ffxFsr3UpscalerContextCreate) KernelBaseProxy::GetProcAddress_()(
+            exeModule, "ffxFsr3UpscalerContextCreate");
 
         if (o_ffxFsr3UpscalerContextCreate_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextCreate_Dx12, ffxFsr3ContextCreate_Dx12);
@@ -642,8 +639,8 @@ void HookFSR3ExeInputs()
 
     if (o_ffxFsr3UpscalerContextDispatch_Dx12 == nullptr)
     {
-        o_ffxFsr3UpscalerContextDispatch_Dx12 =
-            (PFN_ffxFsr3UpscalerContextDispatch) DetourFindFunction(exeName.c_str(), "ffxFsr3UpscalerContextDispatch");
+        o_ffxFsr3UpscalerContextDispatch_Dx12 = (PFN_ffxFsr3UpscalerContextDispatch) KernelBaseProxy::GetProcAddress_()(
+            exeModule, "ffxFsr3UpscalerContextDispatch");
 
         if (o_ffxFsr3UpscalerContextDispatch_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextDispatch_Dx12, ffxFsr3ContextDispatch_Dx12);
@@ -653,8 +650,8 @@ void HookFSR3ExeInputs()
 
     if (o_ffxFsr3UpscalerContextDestroy_Dx12 == nullptr)
     {
-        o_ffxFsr3UpscalerContextDestroy_Dx12 =
-            (PFN_ffxFsr3UpscalerContextDestroy) DetourFindFunction(exeName.c_str(), "ffxFsr3UpscalerContextDestroy");
+        o_ffxFsr3UpscalerContextDestroy_Dx12 = (PFN_ffxFsr3UpscalerContextDestroy) KernelBaseProxy::GetProcAddress_()(
+            exeModule, "ffxFsr3UpscalerContextDestroy");
 
         if (o_ffxFsr3UpscalerContextDestroy_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextDestroy_Dx12, ffxFsr3ContextDestroy_Dx12);
@@ -665,8 +662,8 @@ void HookFSR3ExeInputs()
     if (o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12 == nullptr)
     {
         o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12 =
-            (PFN_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode) DetourFindFunction(
-                exeName.c_str(), "ffxFsr3UpscalerGetUpscaleRatioFromQualityMode");
+            (PFN_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode) KernelBaseProxy::GetProcAddress_()(
+                exeModule, "ffxFsr3UpscalerGetUpscaleRatioFromQualityMode");
 
         if (o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Dx12,
@@ -679,8 +676,8 @@ void HookFSR3ExeInputs()
     if (o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12 == nullptr)
     {
         o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12 =
-            (PFN_ffxFsr3UpscalerGetRenderResolutionFromQualityMode) DetourFindFunction(
-                exeName.c_str(), "ffxFsr3UpscalerGetRenderResolutionFromQualityMode");
+            (PFN_ffxFsr3UpscalerGetRenderResolutionFromQualityMode) KernelBaseProxy::GetProcAddress_()(
+                exeModule, "ffxFsr3UpscalerGetRenderResolutionFromQualityMode");
 
         if (o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerGetRenderResolutionFromQualityMode_Dx12,
@@ -692,20 +689,18 @@ void HookFSR3ExeInputs()
 
     if (Config::Instance()->Fsr3Pattern.value_or_default())
     {
-        std::wstring_view exeNameV(exeNameW.c_str());
-
         // Create
         LOG_DEBUG("Checking createPattern");
         std::string_view createPattern(
             "48 ? ? ? ? 57 48 83 EC 20 48 8B DA 41 B8 ? ? ? ? 33 D2 48 8B F9 E8 ? ? ? ? 48 85 FF 74 ? 48 85 DB");
         o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 =
-            (PFN_ffxFsr3UpscalerContextCreate) scanner::GetAddress(exeNameV, createPattern, 0);
+            (PFN_ffxFsr3UpscalerContextCreate) scanner::GetAddress(exeModule, createPattern, 0);
 
         // RDR1 have duplicate methods and first found one is not used
         if (o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 != nullptr &&
             State::Instance().gameQuirks & GameQuirk::SkipFsr3Method)
             o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 = (PFN_ffxFsr3UpscalerContextCreate) scanner::GetAddress(
-                exeNameV, createPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 + 2);
+                exeModule, createPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 + 2);
 
         if (o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12, ffxFsr3ContextCreate_Pattern_Dx12);
@@ -720,10 +715,10 @@ void HookFSR3ExeInputs()
         if (State::Instance().gameQuirks & GameQuirk::SkipFsr3Method &&
             o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 != nullptr)
             o_ffxFsr3UpscalerContextDestroy_Pattern_Dx12 = (PFN_ffxFsr3UpscalerContextDestroy) scanner::GetAddress(
-                exeNameV, destroyPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12);
+                exeModule, destroyPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12);
         else
             o_ffxFsr3UpscalerContextDestroy_Pattern_Dx12 =
-                (PFN_ffxFsr3UpscalerContextDestroy) scanner::GetAddress(exeNameV, destroyPattern, 0);
+                (PFN_ffxFsr3UpscalerContextDestroy) scanner::GetAddress(exeModule, destroyPattern, 0);
 
         if (o_ffxFsr3UpscalerContextDestroy_Pattern_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextDestroy_Pattern_Dx12, ffxFsr3ContextDestroy_Pattern_Dx12);
@@ -740,10 +735,10 @@ void HookFSR3ExeInputs()
         if (State::Instance().gameQuirks & GameQuirk::SkipFsr3Method &&
             o_ffxFsr3UpscalerContextCreate_Pattern_Dx12 != nullptr)
             o_ffxFsr3UpscalerContextDispatch_Pattern_Dx12 = (PFN_ffxFsr3UpscalerContextDispatch) scanner::GetAddress(
-                exeNameV, dispatchPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12);
+                exeModule, dispatchPattern, 0, (size_t) o_ffxFsr3UpscalerContextCreate_Pattern_Dx12);
         else
             o_ffxFsr3UpscalerContextDispatch_Pattern_Dx12 =
-                (PFN_ffxFsr3UpscalerContextDispatch) scanner::GetAddress(exeNameV, dispatchPattern, 0);
+                (PFN_ffxFsr3UpscalerContextDispatch) scanner::GetAddress(exeModule, dispatchPattern, 0);
 
         if (o_ffxFsr3UpscalerContextDispatch_Pattern_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerContextDispatch_Pattern_Dx12, ffxFsr3ContextDispatch_Pattern_Dx12);
@@ -758,7 +753,7 @@ void HookFSR3ExeInputs()
 
         // RDR1 have duplicate methods and first found one is not used
         o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Pattern_Dx12 =
-            (PFN_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode) scanner::GetAddress(exeNameV, rfqPattern, 0);
+            (PFN_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode) scanner::GetAddress(exeModule, rfqPattern, 0);
 
         if (o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Pattern_Dx12 != nullptr)
             DetourAttach(&(PVOID&) o_ffxFsr3UpscalerGetUpscaleRatioFromQualityMode_Pattern_Dx12,
@@ -770,7 +765,7 @@ void HookFSR3ExeInputs()
 
     // if (o_ffxFSR3GetInterfaceDX12 == nullptr)
     //{
-    //     o_ffxFSR3GetInterfaceDX12 = (PFN_ffxFSR3GetInterfaceDX12)DetourFindFunction(exeName.c_str(),
+    //     o_ffxFSR3GetInterfaceDX12 = (PFN_ffxFSR3GetInterfaceDX12)DetourFindFunction(exeModule,
     //     "ffxGetInterfaceDX12");
 
     //    if (o_ffxFSR3GetInterfaceDX12 != nullptr)

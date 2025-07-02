@@ -38,6 +38,7 @@
 // #define DETAILED_DEBUG_LOGS
 
 inline HMODULE dllModule = nullptr;
+inline HMODULE exeModule = nullptr;
 inline HMODULE originalModule = nullptr;
 inline HMODULE skModule = nullptr;
 inline HMODULE reshadeModule = nullptr;

@@ -1038,6 +1038,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         DisableThreadLibraryCalls(hModule);
 
         dllModule = hModule;
+        exeModule = GetModuleHandle(nullptr);
         processId = GetCurrentProcessId();
 
 #ifdef _DEBUG // VER_PRE_RELEASE

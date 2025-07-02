@@ -70,7 +70,7 @@ uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::str
                               uintptr_t startAddress)
 {
     uintptr_t address = NULL;
-    auto module = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
+    auto module = GetModuleHandle(moduleName.data());
 
     if (module == nullptr)
         return NULL;
@@ -123,10 +123,64 @@ uintptr_t scanner::GetAddress(const std::wstring_view moduleName, const std::str
     }
 }
 
+uintptr_t scanner::GetAddress(HMODULE module, const std::string_view pattern, ptrdiff_t offset, uintptr_t startAddress)
+{
+    if (module == nullptr)
+        return NULL;
+
+    uintptr_t address = NULL;
+    auto sections = GetExecSections(module);
+
+    if (startAddress != 0)
+    {
+        for (size_t i = 0; i < sections.size(); i++)
+        {
+            auto section = &sections[i];
+
+            if (((uintptr_t) section->start < startAddress && (uintptr_t) section->end > startAddress))
+            {
+                address = FindPattern(startAddress, (uintptr_t) section->end - startAddress, pattern.data());
+
+                if (address != NULL)
+                    break;
+            }
+            else if ((uintptr_t) section->start > startAddress)
+            {
+                address = FindPattern((uintptr_t) section->start, (uintptr_t) section->end - (uintptr_t) section->start,
+                                      pattern.data());
+
+                if (address != NULL)
+                    break;
+            }
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < sections.size(); i++)
+        {
+            auto section = &sections[i];
+            address = FindPattern((uintptr_t) section->start, (uintptr_t) section->end - (uintptr_t) section->start,
+                                  pattern.data());
+
+            if (address != NULL)
+                break;
+        }
+    }
+
+    if (address != NULL)
+    {
+        return (address + offset);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 uintptr_t scanner::GetOffsetFromInstruction(const std::wstring_view moduleName, const std::string_view pattern,
                                             ptrdiff_t offset)
 {
-    auto module = KernelBaseProxy::GetModuleHandleW_()(moduleName.data());
+    auto module = GetModuleHandle(moduleName.data());
 
     if (module == nullptr)
         return NULL;
