@@ -1661,9 +1661,12 @@ bool MenuCommon::RenderMenu()
 
         // Main menu window
         if (windowTitle.empty())
+        {
             windowTitle =
-                std::format("{} - {} {}", VER_PRODUCT_NAME, State::Instance().GameExe,
-                            State::Instance().GameName.empty() ? "" : std::format("- {}", State::Instance().GameName));
+                std::format("{} - {} {} {}", VER_PRODUCT_NAME, State::Instance().GameExe,
+                            State::Instance().GameName.empty() ? "" : std::format("- {}", State::Instance().GameName),
+                            State::Instance().gameQuirks.count() > 0 ? "(Q)" : "");
+        }
 
         if (ImGui::Begin(windowTitle.c_str(), NULL, flags))
         {
