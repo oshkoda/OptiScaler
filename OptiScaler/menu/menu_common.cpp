@@ -1457,14 +1457,6 @@ bool MenuCommon::RenderMenu()
     // FPS Overlay font
     auto fpsScale = Config::Instance()->FpsScale.value_or(Config::Instance()->MenuScale.value_or_default());
 
-    // if (Config::Instance()->FpsScale.has_value())
-    //{
-    //     ImGuiStyle& style = ImGui::GetStyle();
-    //     ImGuiStyle styleold = style;
-    //     style = ImGuiStyle();
-    //     style.ScaleAllSizes(fpsScale);
-    // }
-
     // If Fps overlay is visible
     if (Config::Instance()->ShowFps.value_or_default())
     {
@@ -1522,9 +1514,9 @@ bool MenuCommon::RenderMenu()
         ImGui::SetNextWindowPos(overlayPosition, ImGuiCond_Always);
 
         // Set overlay window properties
-        ImGui::SetNextWindowBgAlpha(Config::Instance()->FpsOverlayAlpha.value_or_default()); // Transparent background
-        ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));                        // Transparent border
+        ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));  // Transparent border
         ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0)); // Transparent frame background
+        ImGui::SetNextWindowBgAlpha(Config::Instance()->FpsOverlayAlpha.value_or_default()); // Transparent background
 
         ImVec4 green(0.0f, 1.0f, 0.0f, 1.0f);
         if (State::Instance().isHdrActive)
@@ -1637,10 +1629,15 @@ bool MenuCommon::RenderMenu()
             ImVec2 plotSize;
 
             if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
+            {
                 plotSize = { fpsScale * 150, fpsScale * 16 };
+            }
             else
             {
-                auto plotWidth = overlaySize.x < 300.0f ? fpsScale * 300.0f : overlaySize.x - 20.0f;
+                auto style = ImGui::GetStyle();
+                auto paddingWitdh = (style.WindowPadding.x + style.WindowBorderSize) * 2.05f; // Both sides + safety
+                auto minWidth = fpsScale * 300.0f;
+                auto plotWidth = overlaySize.x < minWidth ? minWidth : overlaySize.x - paddingWitdh;
                 plotSize = { plotWidth, fpsScale * 30 };
             }
 
