@@ -1497,6 +1497,8 @@ bool MenuCommon::RenderMenu()
             MenuHdrCheck(io);
             MenuSizeCheck(io);
             ImGui::NewFrame();
+
+            frameStarted = true;
         }
 
         State::Instance().frameTimeMutex.lock();
