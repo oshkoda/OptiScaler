@@ -949,6 +949,9 @@ static void CheckQuirks()
     if (quirks & GameQuirk::ForceAutoExposure)
         Config::Instance()->AutoExposure.set_volatile_value(true);
 
+    if (quirks & GameQuirk::DisableUseFsrInputValues)
+        Config::Instance()->FsrUseFsrInputValues.set_volatile_value(false);
+
     if (quirks & GameQuirk::DisableDxgiSpoofing && !Config::Instance()->DxgiSpoofing.has_value())
         Config::Instance()->DxgiSpoofing.set_volatile_value(false);
 
