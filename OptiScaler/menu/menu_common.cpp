@@ -1689,18 +1689,26 @@ bool MenuCommon::RenderMenu()
 
         ImGui::End();
 
-        // Top left / Bottom left
+        // Left / Right
         if (Config::Instance()->FpsOverlayPos.value_or_default() == 0 ||
             Config::Instance()->FpsOverlayPos.value_or_default() == 2)
             overlayPosition.x = 0;
         else
             overlayPosition.x = io.DisplaySize.x - overlaySize.x;
 
-        // Top Right / Bottom right
+        // Top / Bottom
         if (Config::Instance()->FpsOverlayPos.value_or_default() < 2)
+        {
             overlayPosition.y = 0;
+        }
+        else
+        {
+            // Prevent overlapping with splash message
+            if (!Config::Instance()->DisableSplash.value_or_default() && now > splashStart && now < splashLimit)
+                overlayPosition.y = io.DisplaySize.y - overlaySize.y - splashSize.y;
         else
             overlayPosition.y = io.DisplaySize.y - overlaySize.y;
+        }
 
         if (!_isVisible)
         {
