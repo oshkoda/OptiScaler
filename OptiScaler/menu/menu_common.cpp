@@ -37,6 +37,7 @@ static std::string currentBackend = "";
 static std::string currentBackendName = "";
 
 static ImVec2 splashPosition(-1000.0f, -1000.0f);
+static ImVec2 splashSize(0.0f, 0.0f);
 static double splashStart = 0.0;
 static double splashLimit = 0.0;
 static std::vector<std::string> splashText = { "May the coping commence...",
@@ -1397,7 +1398,7 @@ bool MenuCommon::RenderMenu()
             ImGui::NewFrame();
 
             ImGui::SetNextWindowSize({ 0.0f, 0.0f });
-            ImGui::SetNextWindowBgAlpha(0.5f); // Transparent background
+            ImGui::SetNextWindowBgAlpha(Config::Instance()->FpsOverlayAlpha.value_or_default());
             ImGui::SetNextWindowPos(splashPosition, ImGuiCond_Always);
 
             float windowAlpha = 1.0f;
@@ -1408,8 +1409,8 @@ bool MenuCommon::RenderMenu()
 
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, windowAlpha);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12, 8));
-            ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));  // Transparent border
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0)); // Transparent frame background
+            ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 0, 0, 0));
 
             if (ImGui::Begin("Splash", nullptr,
                              ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDecoration |
@@ -1430,7 +1431,7 @@ bool MenuCommon::RenderMenu()
                 ImGui::Text("OptiScaler");
                 ImGui::TextColored(toneMapColor(ImVec4(1.0, 1.0, 1.0, 0.7)), splashMessage.c_str());
 
-                auto splashWinSize = ImGui::GetWindowSize();
+                splashSize = ImGui::GetWindowSize();
 
                 if (Config::Instance()->UseHQFont.value_or_default())
                     ImGui::PopFontSize();
@@ -1438,7 +1439,7 @@ bool MenuCommon::RenderMenu()
                 ImGui::End();
 
                 splashPosition.x = 0.0f; // io.DisplaySize.x - splashWinSize.x;
-                splashPosition.y = io.DisplaySize.y - splashWinSize.y;
+                splashPosition.y = io.DisplaySize.y - splashSize.y;
             }
 
             ImGui::PopStyleColor(2);
@@ -1582,32 +1583,92 @@ bool MenuCommon::RenderMenu()
             else
                 ImGui::SetWindowFontScale(fpsScale);
 
+            std::string firstLine = "";
+            std::string secondLine = "";
+            std::string thirdLine = "";
+
+            // Prepare Line 1
             if (Config::Instance()->FpsOverlayType.value_or_default() == 0)
             {
-                ImGui::Text("%s | FPS: %5.1f", api.c_str(), frameRate, frameTime);
+                firstLine = std::format("{} | FPS: {:5.1f}", api.c_str(), frameRate);
             }
             else if (Config::Instance()->FpsOverlayType.value_or_default() == 1)
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                    ImGui::Text("%s | FPS: %5.1f, %6.2f ms | %s -> %s %d.%d.%d", api.c_str(), frameRate, frameTime,
-                                State::Instance().currentInputApiName.c_str(), currentFeature->Name().c_str(),
-                                State::Instance().currentFeature->Version().major,
-                                State::Instance().currentFeature->Version().minor,
-                                State::Instance().currentFeature->Version().patch);
+                    firstLine =
+                        std::format("{} | FPS: {:5.1f}, {:6.2f} ms | {} -> {} {}.{}.{}", api.c_str(), frameRate,
+                                    frameTime, State::Instance().currentInputApiName.c_str(),
+                                    currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
+                                    State::Instance().currentFeature->Version().minor,
+                                    State::Instance().currentFeature->Version().patch);
                 else
-                    ImGui::Text("%s | FPS: %5.1f, %6.2f ms", api.c_str(), frameRate, frameTime);
+                    firstLine = std::format("{} | FPS: {:5.1f}, {:6.2f} ms", api.c_str(), frameRate, frameTime);
             }
             else
             {
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
-                    ImGui::Text("%s | FPS: %5.1f, Avg: %5.1f | %s -> %s %d.%d.%d", api.c_str(), frameRate,
-                                1000.0f / averageFrameTime, State::Instance().currentInputApiName.c_str(),
-                                currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
-                                State::Instance().currentFeature->Version().minor,
-                                State::Instance().currentFeature->Version().patch);
+                    firstLine =
+                        std::format("{} | FPS: {:5.1f}, Avg: {:5.1f} | {} -> {} {}.{}.{}", api.c_str(), frameRate,
+                                    1000.0f / averageFrameTime, State::Instance().currentInputApiName.c_str(),
+                                    currentFeature->Name().c_str(), State::Instance().currentFeature->Version().major,
+                                    State::Instance().currentFeature->Version().minor,
+                                    State::Instance().currentFeature->Version().patch);
                 else
-                    ImGui::Text("%s | FPS: %5.1f, Avg: %5.1f", api.c_str(), frameRate, 1000.0f / averageFrameTime);
+                    firstLine = std::format("{} | FPS: {:5.1f}, Avg: {:5.1f}", api.c_str(), frameRate,
+                                            1000.0f / averageFrameTime);
             }
+
+            // Prepare Line 2
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
+            {
+                if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
+                {
+                    ImGui::SameLine(0.0f, 0.0f);
+                    ImGui::Text(" | ");
+                    ImGui::SameLine(0.0f, 0.0f);
+                }
+                else
+                {
+                    ImGui::Spacing();
+                }
+
+                secondLine = std::format("Frame Time: {:6.2f} ms, Avg: {:6.2f} ms", State::Instance().frameTimes.back(),
+                                         averageFrameTime);
+            }
+
+            // Prepare Line 3
+            if (Config::Instance()->FpsOverlayType.value_or_default() > 3)
+            {
+                thirdLine = std::format("Upscaler Time: {:6.2f} ms, Avg: {:6.2f} ms",
+                                        State::Instance().upscaleTimes.back(), averageUpscalerFT);
+            }
+
+            ImVec2 plotSize;
+            if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
+            {
+                plotSize = { fpsScale * 150, fpsScale * 16 };
+            }
+            else
+            {
+                // Find the widest text width
+                auto firstSize = ImGui::CalcTextSize(firstLine.c_str());
+                auto secondSize = ImGui::CalcTextSize(secondLine.c_str());
+                auto thirdSize = ImGui::CalcTextSize(thirdLine.c_str());
+                auto textWidth = 0.0f;
+
+                if (firstSize.x > secondSize.x)
+                    textWidth = firstSize.x > thirdSize.x ? firstSize.x : thirdSize.x;
+                else
+                    textWidth = secondSize.x > thirdSize.x ? secondSize.x : thirdSize.x;
+
+                auto minWidth = fpsScale * 300.0f;
+                auto plotWidth = textWidth < minWidth ? minWidth : textWidth;
+
+                plotSize = { plotWidth, fpsScale * 30 };
+            }
+
+            // Draw the overlay
+            ImGui::Text(firstLine.c_str());
 
             if (Config::Instance()->FpsOverlayType.value_or_default() > 1)
             {
@@ -1622,23 +1683,7 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
 
-                ImGui::Text("Frame Time: %6.2f ms, Avg: %6.2f ms", State::Instance().frameTimes.back(),
-                            averageFrameTime);
-            }
-
-            ImVec2 plotSize;
-
-            if (Config::Instance()->FpsOverlayHorizontal.value_or_default())
-            {
-                plotSize = { fpsScale * 150, fpsScale * 16 };
-            }
-            else
-            {
-                auto style = ImGui::GetStyle();
-                auto paddingWitdh = (style.WindowPadding.x + style.WindowBorderSize) * 2.05f; // Both sides + safety
-                auto minWidth = fpsScale * 300.0f;
-                auto plotWidth = overlaySize.x < minWidth ? minWidth : overlaySize.x - paddingWitdh;
-                plotSize = { plotWidth, fpsScale * 30 };
+                ImGui::Text(secondLine.c_str());
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() > 2)
@@ -1664,8 +1709,7 @@ bool MenuCommon::RenderMenu()
                     ImGui::Spacing();
                 }
 
-                ImGui::Text("Upscaler Time: %6.2f ms, Avg: %6.2f ms", State::Instance().upscaleTimes.back(),
-                            averageUpscalerFT);
+                ImGui::Text(thirdLine.c_str());
             }
 
             if (Config::Instance()->FpsOverlayType.value_or_default() > 4)
@@ -1706,8 +1750,8 @@ bool MenuCommon::RenderMenu()
             // Prevent overlapping with splash message
             if (!Config::Instance()->DisableSplash.value_or_default() && now > splashStart && now < splashLimit)
                 overlayPosition.y = io.DisplaySize.y - overlaySize.y - splashSize.y;
-        else
-            overlayPosition.y = io.DisplaySize.y - overlaySize.y;
+            else
+                overlayPosition.y = io.DisplaySize.y - overlaySize.y;
         }
 
         if (!_isVisible)
@@ -4496,7 +4540,6 @@ void MenuCommon::Init(HWND InHwnd, bool isUWP)
 
         // This automatically becomes the next default font
         ImFontConfig fontConfig;
-        // fontConfig.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LightHinting;
 
         if (Config::Instance()->TTFFontPath.has_value())
         {
