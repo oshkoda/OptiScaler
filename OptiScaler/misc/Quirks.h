@@ -78,7 +78,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("towers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // Avatar: Frontiers of Pandora
-    QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs, GameQuirk::DisableDxgiSpoofing),
 
     // Forza Motorsport 8
     QUIRK_ENTRY("forza_steamworks_release_final.exe", GameQuirk::DisableFSR2Inputs,
@@ -111,7 +111,7 @@ static const QuirkEntry quirkTable[] = {
     // Dead Island 2
     QUIRK_ENTRY("deadisland-win64-shipping.exe", GameQuirk::DisableReactiveMasks),
 
-    // STAR WARS Jedi: Survivor™
+    // STAR WARS Jedi: Survivor
     QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
 
     // Self-explanatory
