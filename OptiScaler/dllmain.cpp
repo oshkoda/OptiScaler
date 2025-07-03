@@ -1096,6 +1096,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         State::Instance().isRunningOnLinux = IsRunningOnWine();
         State::Instance().isRunningOnDXVK = State::Instance().isRunningOnLinux;
 
+        // Disable splash for Linux
+        if (!Config::Instance()->DisableSplash.has_value())
+            Config::Instance()->DisableSplash.set_volatile_value(State::Instance().isRunningOnLinux);
+
         // Check if real DLSS available
         if (Config::Instance()->DLSSEnabled.value_or_default())
         {
