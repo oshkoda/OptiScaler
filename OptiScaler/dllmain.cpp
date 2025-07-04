@@ -955,10 +955,12 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DisableDxgiSpoofing && !Config::Instance()->DxgiSpoofing.has_value())
         Config::Instance()->DxgiSpoofing.set_volatile_value(false);
 
-    if (quirks & GameQuirk::EnableVulkanSpoofing && !State::Instance().isRunningOnNvidia)
+    if (quirks & GameQuirk::EnableVulkanSpoofing && !State::Instance().isRunningOnNvidia &&
+        !Config::Instance()->VulkanSpoofing.has_value())
         Config::Instance()->VulkanSpoofing.set_volatile_value(true);
 
-    if (quirks & GameQuirk::EnableVulkanExtensionSpoofing && !State::Instance().isRunningOnNvidia)
+    if (quirks & GameQuirk::EnableVulkanExtensionSpoofing && !State::Instance().isRunningOnNvidia &&
+        !Config::Instance()->VulkanExtensionSpoofing.has_value())
         Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(true);
 
     State::Instance().gameQuirks = quirks;
