@@ -16,6 +16,8 @@ enum class GameQuirk : uint64_t
     DisableReactiveMasks,
     DisableDxgiSpoofing,
     DisableUseFsrInputValues,
+    EnableVulkanSpoofing,
+    EnableVulkanExtensionSpoofing,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -119,6 +121,15 @@ static const QuirkEntry quirkTable[] = {
 
     // The Callisto Protocol
     QUIRK_ENTRY("thecallistoprotocol-win64-shipping.exe", GameQuirk::DisableUseFsrInputValues),
+
+    // No Man's Sky
+    QUIRK_ENTRY("nms.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
+
+    // RTX Remix
+    QUIRK_ENTRY("nvremixbridge.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
+
+    // Enshrouded
+    QUIRK_ENTRY("enshrouded.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
 
     // Self-explanatory
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG,
