@@ -50,6 +50,8 @@ NvAPI_Status ReflexHooks::hkNvAPI_D3D_SetLatencyMarker(IUnknown* pDev,
     if (_lastAsyncMarkerFrameId + 10 < pSetLatencyMarkerParams->frameID)
         _dlssgDetected = false;
 
+    State::Instance().rtssReflexInjection = pSetLatencyMarkerParams->frameID >> 32;
+
     return o_NvAPI_D3D_SetLatencyMarker(pDev, pSetLatencyMarkerParams);
 }
 

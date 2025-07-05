@@ -3247,6 +3247,12 @@ bool MenuCommon::RenderMenu()
                                 currentMethod = "XeLL";
                             else if (mode == Mode::AntiLagVk)
                                 currentMethod = "Vulkan AntiLag";
+
+                            if (State::Instance().rtssReflexInjection && mode == Mode::AntiLag2 &&
+                                Config::Instance()->FGType == OptiFG)
+                                ImGui::TextColored(
+                                    ImVec4(1.f, 0.8f, 0.f, 1.f),
+                                    "Using RTSS Reflex injection with AntiLag 2 and OptiFG might cause issues");
                         }
                         else
                         {
@@ -3257,6 +3263,9 @@ bool MenuCommon::RenderMenu()
                     {
                         currentMethod = "Fallback";
                     }
+
+                    if (State::Instance().rtssReflexInjection)
+                        currentMethod.append(" (RTSS)");
 
                     ImGui::Text(std::format("Current method: {}", currentMethod).c_str());
 
