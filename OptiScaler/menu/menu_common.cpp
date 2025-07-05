@@ -56,11 +56,11 @@ static std::vector<std::string> splashText = { "May the coping commence...",
                                                "To infinity and beyond... with ray tracing off.",
                                                "I have a bad feeling about this frame pacing.",
                                                "It's Dangerous to Go Alone-Take This Upscaler",
-                                               "Upscaled beyond recognition."
-                                               "Trust the process. Ignore the shimmer."
-                                               "Real fake frames. Certified."
-                                               "The illusion of performance, perfected."
-                                               "This upscaler belongs in a museum!"
+                                               "Upscaled beyond recognition.",
+                                               "Trust the process. Ignore the shimmer.",
+                                               "Real fake frames. Certified.",
+                                               "The illusion of performance, perfected.",
+                                               "This upscaler belongs in a museum!",
                                                "Because native rendering is overrated." };
 
 void MenuCommon::ShowTooltip(const char* tip)
