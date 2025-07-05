@@ -98,6 +98,7 @@ class State
     // Framerate
     bool reflexLimitsFps = false;
     bool reflexShowWarning = false;
+    bool rtssReflexInjection = false;
 
     // for realtime changes
     ankerl::unordered_dense::map<unsigned int, bool> changeBackend;
