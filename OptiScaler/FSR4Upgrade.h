@@ -233,7 +233,7 @@ struct AmdExtFfxApi : public IAmdExtFfxApi
             }
 
             const char* pattern = "83 F9 05 0F 87 ? ? ? ?";
-            o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(L"amdxcffx64.dll", pattern);
+            o_getModelBlob = (PFN_getModelBlob) scanner::GetAddress(fsr4Module, pattern);
 
             if (o_getModelBlob)
             {
