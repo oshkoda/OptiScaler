@@ -61,6 +61,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("kunitsugami.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("kunitsugamidemo.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNonNvidia), // Seems to fix real DLSS
 
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
