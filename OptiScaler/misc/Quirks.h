@@ -103,6 +103,9 @@ static const QuirkEntry quirkTable[] = {
     // 171
     QUIRK_ENTRY("bcg-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
+    // Microsoft Flight Simulator (2020), MSFS2020
+    QUIRK_ENTRY("flightsimulator.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+
     // Star Wars: Outlaws
     QUIRK_ENTRY("outlaws.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
     QUIRK_ENTRY("outlaws_plus.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
