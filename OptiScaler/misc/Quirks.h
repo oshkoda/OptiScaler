@@ -126,6 +126,21 @@ static const QuirkEntry quirkTable[] = {
     // The Callisto Protocol
     QUIRK_ENTRY("thecallistoprotocol-win64-shipping.exe", GameQuirk::DisableUseFsrInputValues),
 
+    // HITMAN World of Assassination
+    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
+
+    // Returnal
+    QUIRK_ENTRY("returnal-win64-shipping.exe",
+                GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
+
+    // UNCHARTED: Legacy of Thieves Collection
+    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
+
+    // VULKAN
+
     // No Man's Sky
     QUIRK_ENTRY("nms.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
 
@@ -137,9 +152,9 @@ static const QuirkEntry quirkTable[] = {
 
     // Self-explanatory
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG,
-                GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
-    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
+                GameQuirk::DisableDxgiSpoofing),                  // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),  // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
