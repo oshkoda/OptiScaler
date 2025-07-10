@@ -131,7 +131,7 @@ static const QuirkEntry quirkTable[] = {
 
     // Returnal
     QUIRK_ENTRY("returnal-win64-shipping.exe",
-                GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
+                GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs, but no DLSSG and Reflex
 
     // UNCHARTED: Legacy of Thieves Collection
     QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
