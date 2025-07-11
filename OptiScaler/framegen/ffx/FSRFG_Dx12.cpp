@@ -688,7 +688,7 @@ bool FSRFG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
         _hwnd = hwnd;
 
         // hack for RDR1
-        _swapChain->Release();
+        //_swapChain->Release();
 
         return true;
     }
