@@ -350,7 +350,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
         _lastFrameTime = now;
         State::Instance().lastFrameTime = ftDelta;
-        LOG_DEBUG("Frametime: {0}", ftDelta);
+        LOG_DEBUG("Frametime: {:0.3f} ms", ftDelta);
     }
 
     ID3D11Device* device = nullptr;
