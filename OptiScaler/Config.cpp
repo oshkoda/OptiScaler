@@ -81,6 +81,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGRectWidth.set_from_config(readInt("OptiFG", "RectWidth"));
             FGRectHeight.set_from_config(readInt("OptiFG", "RectHeight"));
             FGAlwaysTrackHeaps.set_from_config(readBool("OptiFG", "AlwaysTrackHeaps"));
+            FGResourceBlocking.set_from_config(readBool("OptiFG", "ResourceBlocking"));
             FGMakeDepthCopy.set_from_config(readBool("OptiFG", "MakeDepthCopy"));
             FGMakeMVCopy.set_from_config(readBool("OptiFG", "MakeMVCopy"));
             FGUseMutexForSwapchain.set_from_config(readBool("OptiFG", "UseMutexForSwapchain"));
@@ -629,6 +630,8 @@ bool Config::SaveIni()
         ini.SetValue("OptiFG", "RectHeight", GetIntValue(Instance()->FGRectHeight.value_for_config()).c_str());
         ini.SetValue("OptiFG", "AlwaysTrackHeaps",
                      GetBoolValue(Instance()->FGAlwaysTrackHeaps.value_for_config()).c_str());
+        ini.SetValue("OptiFG", "ResourceBlocking",
+                     GetBoolValue(Instance()->FGResourceBlocking.value_for_config()).c_str());
         ini.SetValue("OptiFG", "MakeDepthCopy", GetBoolValue(Instance()->FGMakeDepthCopy.value_for_config()).c_str());
         ini.SetValue("OptiFG", "MakeMVCopy", GetBoolValue(Instance()->FGMakeMVCopy.value_for_config()).c_str());
         ini.SetValue("OptiFG", "UseMutexForSwapchain",

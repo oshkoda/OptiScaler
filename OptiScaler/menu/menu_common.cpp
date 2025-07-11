@@ -2699,6 +2699,16 @@ bool MenuCommon::RenderMenu()
                             ImGui::Checkbox("FG Only Generated", &State::Instance().FGonlyGenerated);
                             ShowHelpMarker("Display only FSR 3.1 generated frames");
 
+                            auto rb = Config::Instance()->FGResourceBlocking.value_or_default();
+                            if (ImGui::Checkbox("Resource Blocking", &rb))
+                            {
+                                Config::Instance()->FGResourceBlocking = rb;
+                                LOG_DEBUG("Enabled set FGAlwaysTrackHeaps: {}", rb);
+                            }
+                            ShowHelpMarker("Block rarely used resources from using as hudless \n"
+                                           "to prevent flickers and other issues\n\n"
+                                           "Hudfix enable/disable will reset the block list!");
+
                             ImGui::BeginDisabled(State::Instance().FGresetCapturedResources);
                             ImGui::PushItemWidth(95.0f * Config::Instance()->MenuScale.value_or_default());
                             if (ImGui::Checkbox("FG Create List", &State::Instance().FGcaptureResources))

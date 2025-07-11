@@ -470,7 +470,7 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
         LOG_DEBUG("Waiting _checkMutex");
         std::lock_guard<std::mutex> lock(_checkMutex);
 
-        if (!ignoreBlocked)
+        if (!ignoreBlocked && Config::Instance()->FGResourceBlocking.value_or_default())
         {
             if (_hudlessList.contains(resource->buffer))
             {

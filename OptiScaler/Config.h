@@ -367,11 +367,12 @@ class Config
     CustomOptional<bool> FGHudfixHalfSync { false };
     CustomOptional<bool> FGHudfixFullSync { false };
     CustomOptional<bool> FGImmediatelyExecute { true };
-    CustomOptional<bool> FGWaitForNextExecute { false };
-    CustomOptional<bool> FGExecuteAfterCallback { false };
+    // CustomOptional<bool> FGWaitForNextExecute { false };
+    // CustomOptional<bool> FGExecuteAfterCallback { false };
 
     // OptiFG - Resource Tracking
     CustomOptional<bool> FGAlwaysTrackHeaps { false };
+    CustomOptional<bool> FGResourceBlocking { true };
 
     // OptiFG - DLSS-D Depth scale
     CustomOptional<bool> FGEnableDepthScale { false };
