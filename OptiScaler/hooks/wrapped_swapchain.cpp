@@ -6,6 +6,8 @@
 
 #include <misc/FrameLimit.h>
 
+#pragma intrinsic(_ReturnAddress)
+
 // Used RenderDoc's wrapped object as referance
 // https://github.com/baldurk/renderdoc/blob/v1.x/renderdoc/driver/dxgi/dxgi_wrapped.cpp
 
@@ -225,7 +227,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::GetBuffer(UINT Buffer, REFIID 
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullscreen, IDXGIOutput* pTarget)
 {
-    LOG_DEBUG("Fullscreen: {}, pTarget: {:X}", Fullscreen, (size_t) pTarget);
+    LOG_DEBUG("Fullscreen: {}, pTarget: {:X}, Caller: {}", Fullscreen, (size_t) pTarget,
+              Util::WhoIsTheCaller(_ReturnAddress()));
+
     HRESULT result = S_OK;
 
     bool ffxLock = false;
@@ -240,7 +244,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
         if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
         {
 
-            if (State::Instance().currentFG != nullptr && State::Instance().currentFG->Mutex.getOwner() != 3)
+            if (State::Instance().currentFG != nullptr && State::Instance().currentFG->IsActive() &&
+                State::Instance().currentFG->Mutex.getOwner() != 3)
             {
                 LOG_TRACE("Waiting ffxMutex 3, current: {}", State::Instance().currentFG->Mutex.getOwner());
                 State::Instance().currentFG->Mutex.lock(3);
@@ -259,47 +264,9 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::SetFullscreenState(BOOL Fullsc
             LOG_ERROR("result: {:X}", (UINT) result);
         else
             LOG_DEBUG("result: {:X}", result);
-
-        /*
-        if (Config::Instance()->FGEnabled.value_or_default())
-        {
-            State::Instance().FGresetCapturedResources = true;
-            State::Instance().FGonlyUseCapturedResources = false;
-
-            if (State::Instance().currentFeature != nullptr)
-                State::Instance().FGchanged = true;
-        }
-
-        /*
-        if (ClearTrig != nullptr)
-            ClearTrig(true, Handle);
-
-        State::Instance().SCchanged = true;
-        State::Instance().SCbuffers.clear();
-
-        UINT bc = 0;
-        if (m_pReal1 != nullptr)
-        {
-            DXGI_SWAP_CHAIN_DESC1 desc{};
-
-            if (m_pReal1->GetDesc1(&desc) == S_OK)
-                bc = desc.BufferCount;
-        }
-
-        for (size_t i = 0; i < bc; i++)
-        {
-            IUnknown* buffer;
-
-            if (m_pReal->GetBuffer(i, IID_PPV_ARGS(&buffer)) == S_OK)
-            {
-                State::Instance().SCbuffers.push_back(buffer);
-                buffer->Release();
-            }
-        }
-        */
     }
 
-    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default() && ffxLock)
+    if (ffxLock)
     {
         LOG_TRACE("Releasing ffxMutex: {}", State::Instance().currentFG->Mutex.getOwner());
         State::Instance().currentFG->Mutex.unlockThis(3);
