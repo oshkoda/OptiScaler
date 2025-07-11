@@ -1591,9 +1591,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         InParameters->Get(NVSDK_NGX_Parameter_Output, (void**) &output);
 
     UINT frameIndex;
-    if (fg != nullptr && fg->IsActive() && State::Instance().activeFgType == OptiFG &&
-        Config::Instance()->OverlayMenu.value_or_default() && Config::Instance()->FGEnabled.value_or_default() &&
-        fg->TargetFrame() < fg->FrameCount() && State::Instance().currentSwapchain != nullptr)
+    if (!State::Instance().isShuttingDown && fg != nullptr && fg->IsActive() &&
+        State::Instance().activeFgType == OptiFG && Config::Instance()->OverlayMenu.value_or_default() &&
+        Config::Instance()->FGEnabled.value_or_default() && fg->TargetFrame() < fg->FrameCount() &&
+        State::Instance().currentSwapchain != nullptr)
     {
         // Wait for present
         if (fg->Mutex.getOwner() == 2)

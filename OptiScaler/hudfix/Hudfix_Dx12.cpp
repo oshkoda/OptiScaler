@@ -167,7 +167,7 @@ bool Hudfix_Dx12::CheckCapture()
 
 bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
 {
-    if (resource == nullptr || resource->buffer == nullptr)
+    if (resource == nullptr || resource->buffer == nullptr || State::Instance().isShuttingDown)
         return false;
 
     if (State::Instance().FGonlyUseCapturedResources)
@@ -431,6 +431,9 @@ UINT64 Hudfix_Dx12::ActivePresentFrame() { return _fgCounter; }
 
 bool Hudfix_Dx12::IsResourceCheckActive()
 {
+    if (State::Instance().isShuttingDown)
+        return false;
+
     if (_upscaleCounter <= _fgCounter)
         return false;
 
