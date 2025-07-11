@@ -844,7 +844,7 @@ class XeSSProxy
 
     static xess_version_t Version()
     {
-        if (_xessVersion.major == 0)
+        if (_xessVersion.major == 0 && _xessGetVersion != nullptr)
         {
             if (auto result = _xessGetVersion(&_xessVersion); result == XESS_RESULT_SUCCESS)
 
