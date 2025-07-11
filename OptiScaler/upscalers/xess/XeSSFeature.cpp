@@ -43,11 +43,17 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
         return false;
     }
 
-    ret = XeSSProxy::IsOptimalDriver()(_xessContext);
-    LOG_DEBUG("xessIsOptimalDriver : {0}", ResultToString(ret));
+    if (XeSSProxy::IsOptimalDriver() != nullptr)
+    {
+        ret = XeSSProxy::IsOptimalDriver()(_xessContext);
+        LOG_DEBUG("xessIsOptimalDriver : {0}", ResultToString(ret));
+    }
 
-    ret = XeSSProxy::SetLoggingCallback()(_xessContext, XESS_LOGGING_LEVEL_DEBUG, XeSSLogCallback);
-    LOG_DEBUG("xessSetLoggingCallback : {0}", ResultToString(ret));
+    if (XeSSProxy::SetLoggingCallback() != nullptr)
+    {
+        ret = XeSSProxy::SetLoggingCallback()(_xessContext, XESS_LOGGING_LEVEL_DEBUG, XeSSLogCallback);
+        LOG_DEBUG("xessSetLoggingCallback : {0}", ResultToString(ret));
+    }
 
     xess_d3d12_init_params_t xessParams {};
 
@@ -227,7 +233,7 @@ bool XeSSFeature::InitXeSS(ID3D12Device* device, const NVSDK_NGX_Parameter* InPa
     }
 
     // try to build pipelines with local pipeline object
-    if (Config::Instance()->BuildPipelines.value_or(true))
+    if (Config::Instance()->BuildPipelines.value_or(true) && Version() > feature_version { 1, 2, 0 })
     {
         LOG_DEBUG("xessD3D12BuildPipelines!");
         State::Instance().skipHeapCapture = true;
