@@ -60,18 +60,19 @@ UINT64 FSRFG_Dx12::UpscaleStart()
 {
     _frameCount++;
 
-    if (!State::Instance().isShuttingDown && IsActive())
-    {
-        auto frameIndex = GetIndex();
+    // if (!State::Instance().isShuttingDown && IsActive())
+    //{
+    //     auto frameIndex = GetIndex();
 
-        if (Config::Instance()->FGHUDFix.value_or_default())
-        {
-            auto allocator = _commandAllocators[frameIndex];
-            auto result = allocator->Reset();
-            result = _commandList[frameIndex]->Reset(allocator, nullptr);
-            LOG_DEBUG("_commandList[{}]->Reset()", frameIndex);
-        }
-    }
+    //    if (Config::Instance()->FGHUDFix.value_or_default())
+    //    {
+    //        auto allocator = _commandAllocators[frameIndex];
+    //        auto result = allocator->Reset();
+    //        LOG_DEBUG("_commandAllocators[{}]->Reset(): {:X}", frameIndex, result);
+    //        result = _commandList[frameIndex]->Reset(allocator, nullptr);
+    //        LOG_DEBUG("_commandList[{}]->Reset(): {:X}", frameIndex, result);
+    //    }
+    //}
 
     return _frameCount;
 }
@@ -256,10 +257,12 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
         Mutex.unlockThis(1);
     }
 
+    _mvAndDepthReady[frameIndex] = false;
+
     return retCode == FFX_API_RETURN_OK;
 }
 
-bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
+bool FSRFG_Dx12::DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime)
 {
     LOG_DEBUG("useHudless: {}, frameTime: {}", useHudless, frameTime);
 
@@ -271,11 +274,12 @@ bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
     ffxConfigureDescFrameGeneration m_FrameGenerationConfig = {};
     m_FrameGenerationConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION;
 
-    if (useHudless)
+    if (useHudless && _paramHudless[fIndex] != nullptr)
     {
         LOG_TRACE("Using hudless: {:X}", (size_t) _paramHudless[fIndex]);
         m_FrameGenerationConfig.HUDLessColor =
             ffxApiGetResourceDX12(_paramHudless[fIndex], FFX_API_RESOURCE_STATE_COPY_DEST);
+        _paramHudless[fIndex] = nullptr;
     }
     else
     {
@@ -357,8 +361,25 @@ bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
         dfgPrepare.header.type = FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE;
         dfgPrepare.header.pNext = &backendDesc.header;
 
-        // GetDispatchCommandList();
-        dfgPrepare.commandList = _commandList[fIndex];
+        if (cmdList != nullptr)
+        {
+            dfgPrepare.commandList = cmdList;
+        }
+        else
+        {
+            // auto allocator = _commandAllocators[fIndex];
+            // auto result = allocator->Reset();
+
+            // if (result != S_OK)
+            //     return false;
+
+            // result = _commandList[fIndex]->Reset(allocator, nullptr);
+
+            // if (result != S_OK)
+            //     return false;
+
+            // dfgPrepare.commandList = _commandList[fIndex];
+        }
 
         dfgPrepare.frameID = _frameCount;
         dfgPrepare.flags = m_FrameGenerationConfig.flags;
@@ -383,18 +404,6 @@ bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
         LOG_DEBUG("D3D12_Dispatch result: {0}, frame: {1}, fIndex: {2}, commandList: {3:X}", retCode, _frameCount,
                   fIndex, (size_t) dfgPrepare.commandList);
 
-        // if (retCode == FFX_API_RETURN_OK && !Config::Instance()->FGExecuteAfterCallback.value_or_default())
-        //{
-        //     auto result = _commandList[fIndex]->Close();
-        //     LOG_DEBUG("_commandList[{}]->Close() result: {:X}", fIndex, (UINT) result);
-
-        //    if (result == S_OK)
-        //    {
-        //        ID3D12CommandList* cl[] = { cl[0] = _commandList[fIndex] };
-        //        _gameCommandQueue->ExecuteCommandLists(1, cl);
-        //    }
-        //}
-
         if (retCode == FFX_API_RETURN_OK)
             SetHudlessDispatchReady();
     }
@@ -404,6 +413,9 @@ bool FSRFG_Dx12::DispatchHudless(bool useHudless, double frameTime)
         LOG_TRACE("Releasing FG->Mutex: {}", Mutex.getOwner());
         Mutex.unlockThis(1);
     };
+
+    _mvAndDepthReady[fIndex] = false;
+    _hudlessReady[fIndex] = false;
 
     return retCode == FFX_API_RETURN_OK;
 }
@@ -493,7 +505,7 @@ ffxReturnCode_t FSRFG_Dx12::HudlessDispatchCallback(ffxDispatchDescFrameGenerati
 
     // check for status
     if (!Config::Instance()->FGEnabled.value_or_default() || !Config::Instance()->FGHUDFix.value_or_default() ||
-        _fgContext == nullptr || _gameCommandQueue == nullptr || State::Instance().SCchanged)
+        _fgContext == nullptr || State::Instance().SCchanged)
     {
         LOG_WARN("Cancel async dispatch");
         params->numGeneratedFrames = 0;
@@ -501,8 +513,7 @@ ffxReturnCode_t FSRFG_Dx12::HudlessDispatchCallback(ffxDispatchDescFrameGenerati
 
     // If fg is active but upscaling paused
     if (State::Instance().currentFeature == nullptr || State::Instance().FGchanged || fIndex < 0 || !IsActive() ||
-        State::Instance().currentFeature->FrameCount() == 0 || _commandList[fIndex] == nullptr ||
-        params->frameID == _lastUpscaledFrameId)
+        State::Instance().currentFeature->FrameCount() == 0 || params->frameID == _lastUpscaledFrameId)
     {
         LOG_WARN("Upscaling paused! frameID: {}", params->frameID);
         params->numGeneratedFrames = 0;

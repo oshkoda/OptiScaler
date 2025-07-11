@@ -205,71 +205,73 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
 
 void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
-    if (_commandAllocators[0] != nullptr)
         return;
 
-    _device = InDevice;
+    // if (_commandAllocators[0] != nullptr)
+    //     return;
 
-    LOG_DEBUG("");
+    //_device = InDevice;
 
-    do
-    {
-        HRESULT result;
+    // LOG_DEBUG("");
 
-        for (size_t i = 0; i < BUFFER_COUNT; i++)
-        {
-            ID3D12CommandAllocator* allocator = nullptr;
-            result = InDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator));
-            if (result != S_OK)
-            {
-                LOG_ERROR("CreateCommandAllocators _commandAllocators[{}]: {:X}", i, (unsigned long) result);
-                break;
-            }
-            allocator->SetName(L"_commandAllocator");
-            if (!CheckForRealObject(__FUNCTION__, allocator, (IUnknown**) &_commandAllocators[i]))
-                _commandAllocators[i] = allocator;
+    // do
+    //{
+    //     HRESULT result;
 
-            ID3D12GraphicsCommandList* cmdList = nullptr;
-            result = InDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocators[i], NULL,
-                                                 IID_PPV_ARGS(&cmdList));
-            if (result != S_OK)
-            {
-                LOG_ERROR("CreateCommandList _commandList[{}]: {:X}", i, (unsigned long) result);
-                break;
-            }
-            cmdList->SetName(L"_commandList");
-            if (!CheckForRealObject(__FUNCTION__, cmdList, (IUnknown**) &_commandList[i]))
-                _commandList[i] = cmdList;
+    //    for (size_t i = 0; i < BUFFER_COUNT; i++)
+    //    {
+    //        ID3D12CommandAllocator* allocator = nullptr;
+    //        result = InDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator));
+    //        if (result != S_OK)
+    //        {
+    //            LOG_ERROR("CreateCommandAllocators _commandAllocators[{}]: {:X}", i, (unsigned long) result);
+    //            break;
+    //        }
+    //        allocator->SetName(L"_commandAllocator");
+    //        if (!CheckForRealObject(__FUNCTION__, allocator, (IUnknown**) &_commandAllocators[i]))
+    //            _commandAllocators[i] = allocator;
 
-            result = _commandList[i]->Close();
-            if (result != S_OK)
-            {
-                LOG_ERROR("_commandList[{}]->Close: {:X}", i, (unsigned long) result);
-                break;
-            }
-        }
+    //        ID3D12GraphicsCommandList* cmdList = nullptr;
+    //        result = InDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocators[i], NULL,
+    //                                             IID_PPV_ARGS(&cmdList));
+    //        if (result != S_OK)
+    //        {
+    //            LOG_ERROR("CreateCommandList _commandList[{}]: {:X}", i, (unsigned long) result);
+    //            break;
+    //        }
+    //        cmdList->SetName(L"_commandList");
+    //        if (!CheckForRealObject(__FUNCTION__, cmdList, (IUnknown**) &_commandList[i]))
+    //            _commandList[i] = cmdList;
 
-    } while (false);
+    //        result = _commandList[i]->Close();
+    //        if (result != S_OK)
+    //        {
+    //            LOG_ERROR("_commandList[{}]->Close: {:X}", i, (unsigned long) result);
+    //            break;
+    //        }
+    //    }
+
+    //} while (false);
 }
 
 void IFGFeature_Dx12::ReleaseObjects()
 {
     LOG_DEBUG("");
 
-    for (size_t i = 0; i < BUFFER_COUNT; i++)
-    {
-        if (_commandAllocators[i] != nullptr)
-        {
-            _commandAllocators[i]->Release();
-            _commandAllocators[i] = nullptr;
-        }
+    // for (size_t i = 0; i < BUFFER_COUNT; i++)
+    //{
+    //     if (_commandAllocators[i] != nullptr)
+    //     {
+    //         _commandAllocators[i]->Release();
+    //         _commandAllocators[i] = nullptr;
+    //     }
 
-        if (_commandList[i] != nullptr)
-        {
-            _commandList[i]->Release();
-            _commandList[i] = nullptr;
-        }
-    }
+    //    if (_commandList[i] != nullptr)
+    //    {
+    //        _commandList[i]->Release();
+    //        _commandList[i] = nullptr;
+    //    }
+    //}
 
     _mvFlip.reset();
     _depthFlip.reset();
@@ -279,67 +281,90 @@ bool IFGFeature_Dx12::IsFGCommandList(void* cmdList)
 {
     auto found = false;
 
-    for (size_t i = 0; i < BUFFER_COUNT; i++)
-    {
-        if (_commandList[i] == cmdList)
-        {
-            found = true;
-            break;
-        }
-    }
+    // for (size_t i = 0; i < BUFFER_COUNT; i++)
+    //{
+    //     if (_commandList[i] == cmdList)
+    //     {
+    //         found = true;
+    //         break;
+    //     }
+    // }
 
     return found;
 }
 
-bool IFGFeature_Dx12::ExecuteHudlessCmdList()
+ID3D12CommandList* IFGFeature_Dx12::ExecuteHudlessCmdList(ID3D12CommandQueue* queue)
 {
-    if (!_hudlessDispatchReady)
-        return false;
+    return nullptr;
 
-    _mvAndDepthReady = false;
-    _hudlessReady = false;
-    _hudlessDispatchReady = false;
+    // static std::mutex executeMutex;
 
-    auto fIndex = GetIndex();
-    auto result = _commandList[fIndex]->Close();
+    // std::lock_guard<std::mutex> lock(executeMutex);
 
-    LOG_DEBUG("_commandList[{}]->Close() result: {:X}", fIndex, (UINT) result);
+    // if (!_hudlessDispatchReady)
+    //     return nullptr;
 
-    if (result == S_OK)
-    {
-        ID3D12CommandList* cl[] = { cl[0] = _commandList[fIndex] };
-        _gameCommandQueue->ExecuteCommandLists(1, cl);
+    // auto fIndex = GetIndex();
+    // auto result = _commandList[fIndex]->Close();
 
-        return true;
-    }
+    //_mvAndDepthReady[fIndex] = false;
+    //_hudlessReady[fIndex] = false;
+    //_hudlessDispatchReady[fIndex] = false;
 
-    return false;
+    // LOG_DEBUG("_commandList[{}]->Close() result: {:X}", fIndex, (UINT) result);
+
+    // if (result == S_OK)
+    //{
+    //     ID3D12CommandList* cl[] = { _commandList[fIndex] };
+
+    //    if (queue == nullptr)
+    //        _gameCommandQueue->ExecuteCommandLists(1, cl);
+    //    else
+    //        queue->ExecuteCommandLists(1, cl);
+
+    //    return _commandList[fIndex];
+    //}
+    // else
+    //{
+    //    State::Instance().FGchanged = true;
+    //}
+
+    // return nullptr;
 }
 
-void IFGFeature_Dx12::SetVelocityAndDepthReady() { _mvAndDepthReady = true; }
+void IFGFeature_Dx12::SetUpscaleInputsReady() { _mvAndDepthReady[GetIndex()] = true; }
 
-void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady = true; }
+void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady[GetIndex()] = true; }
 
-void IFGFeature_Dx12::SetHudlessDispatchReady() { _hudlessDispatchReady = true; }
+void IFGFeature_Dx12::SetHudlessDispatchReady() { _hudlessDispatchReady[GetIndex()] = true; }
 
 void IFGFeature_Dx12::Present()
 {
-    if (!_mvAndDepthReady)
-    {
-        _mvAndDepthReady = false;
-        _hudlessReady = false;
-        _hudlessDispatchReady = false;
-        return;
-    }
+    auto fIndex = LastDispatchedFrame() % BUFFER_COUNT;
+    _mvAndDepthReady[fIndex] = false;
+    _hudlessReady[fIndex] = false;
+    _hudlessDispatchReady[fIndex] = false;
 
-    auto hudless = _hudlessReady;
-    _mvAndDepthReady = false;
-    _hudlessReady = false;
-    _hudlessDispatchReady = false;
+    // if (!_mvAndDepthReady[fIndex])
+    //{
+    //     _mvAndDepthReady[fIndex] = false;
+    //     _hudlessReady[fIndex] = false;
+    //     _hudlessDispatchReady[fIndex] = false;
+    //     return;
+    // }
 
-    DispatchHudless(hudless, State::Instance().lastFrameTime);
+    // auto hudless = _hudlessReady[fIndex];
+    //_mvAndDepthReady[fIndex] = false;
+    //_hudlessReady[fIndex] = false;
+    //_hudlessDispatchReady[fIndex] = false;
+
+    // DispatchHudless(nullptr, hudless, State::Instance().lastFrameTime);
 }
 
-bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady; }
-bool IFGFeature_Dx12::HudlessReady() { return _hudlessReady; }
-bool IFGFeature_Dx12::ReadyForExecute() { return _mvAndDepthReady && _hudlessReady; }
+bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady[GetIndex()]; }
+bool IFGFeature_Dx12::HudlessReady() { return _hudlessReady[GetIndex()]; }
+bool IFGFeature_Dx12::ReadyForExecute()
+{
+    auto fIndex = GetIndex();
+    return _mvAndDepthReady[fIndex] && _hudlessReady[fIndex];
+}

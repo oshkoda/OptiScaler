@@ -226,8 +226,9 @@ class ResTrack_Dx12
     inline static bool _presentDone = true;
     inline static std::mutex _drawMutex;
 
-    inline static ID3D12GraphicsCommandList* _commandList = nullptr;
-    inline static ID3D12GraphicsCommandList* _upscalerCommandList = nullptr;
+    inline static ID3D12GraphicsCommandList* _commandList[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
+    inline static ID3D12GraphicsCommandList* _upscalerCommandList[BUFFER_COUNT] = { nullptr, nullptr, nullptr,
+                                                                                    nullptr };
 
     static bool IsHudFixActive();
 
@@ -260,6 +261,8 @@ class ResTrack_Dx12
                            UINT ThreadGroupCountZ);
 
     static void hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12GraphicsCommandList* pCommandList);
+
+    static void hkClose(ID3D12GraphicsCommandList* This);
 
     static void hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource* pResource,
                                          D3D12_RENDER_TARGET_VIEW_DESC* pDesc,

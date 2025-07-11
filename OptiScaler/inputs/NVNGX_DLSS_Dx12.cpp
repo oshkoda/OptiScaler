@@ -1604,6 +1604,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             fg->Mutex.unlockThis(4);
         }
 
+        ResTrack_Dx12::SetUpscalerCmdList(InCmdList);
         bool allocatorReset = false;
         frameIndex = fg->GetIndex();
 
@@ -1713,7 +1714,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             if (Config::Instance()->FGHUDFix.value_or_default())
             {
                 // For signal after mv & depth copies
-                ResTrack_Dx12::SetUpscalerCmdList(InCmdList);
                 Hudfix_Dx12::UpscaleEnd(deviceContext->feature->FrameCount(), State::Instance().lastFrameTime);
 
                 ResourceInfo info {};

@@ -87,7 +87,7 @@ class Hudfix_Dx12
     // Check _captureCounter for current frame
     static bool CheckCapture();
 
-    static void HudlessFound();
+    static void HudlessFound(ID3D12GraphicsCommandList* cmdList);
 
     static int GetIndex();
 

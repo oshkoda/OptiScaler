@@ -308,7 +308,7 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
 
 int Hudfix_Dx12::GetIndex() { return _upscaleCounter % BUFFER_COUNT; }
 
-void Hudfix_Dx12::HudlessFound()
+void Hudfix_Dx12::HudlessFound(ID3D12GraphicsCommandList* cmdList)
 {
     LOG_DEBUG("_upscaleCounter: {}, _fgCounter: {}", _upscaleCounter, _fgCounter);
 
@@ -322,12 +322,6 @@ void Hudfix_Dx12::HudlessFound()
 
     // Increase counter
     _fgCounter++;
-
-    State::Instance().currentFG->DispatchHudless(true, State::Instance().lastFrameTime);
-
-    // If Velocity and Depth copied then execute
-    if (State::Instance().currentFG->UpscalerInputsReady())
-        State::Instance().currentFG->ExecuteHudlessCmdList();
 
     _skipHudlessChecks = false;
 }
@@ -648,8 +642,9 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
                 LOG_TRACE("Using _formatTransfer->Buffer()");
 
                 auto fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+
                 if (fg != nullptr)
-                    fg->SetHudless(nullptr, _formatTransfer->Buffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, false);
+                    fg->SetHudless(cmdList, _formatTransfer->Buffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, false);
             }
             else
             {
@@ -665,8 +660,9 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
             _skipHudlessChecks = true;
             LOG_DEBUG("Using _captureBuffer");
             auto fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+
             if (fg != nullptr)
-                fg->SetHudless(nullptr, _captureBuffer[fIndex], D3D12_RESOURCE_STATE_COPY_DEST, false);
+                fg->SetHudless(cmdList, _captureBuffer[fIndex], D3D12_RESOURCE_STATE_COPY_DEST, false);
         }
 
         if (State::Instance().FGcaptureResources)
@@ -681,7 +677,7 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
         // This will prevent resource tracker to check these operations
         // Will reset after FG dispatch
         _skipHudlessChecks = true;
-        HudlessFound();
+        HudlessFound(cmdList);
 
         return true;
 

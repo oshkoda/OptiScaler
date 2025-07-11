@@ -12,9 +12,6 @@
 class IFGFeature_Dx12 : public virtual IFGFeature
 {
   private:
-    bool _mvAndDepthReady = false;
-    bool _hudlessReady = false;
-    bool _hudlessDispatchReady = false;
     std::unique_ptr<RF_Dx12> _mvFlip;
     std::unique_ptr<RF_Dx12> _depthFlip;
     ID3D12Device* _device = nullptr;
@@ -24,6 +21,10 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12CommandQueue* _gameCommandQueue = nullptr;
     HWND _hwnd = NULL;
 
+    bool _mvAndDepthReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _hudlessReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _hudlessDispatchReady[BUFFER_COUNT] = { false, false, false, false };
+
     ID3D12Resource* _paramVelocity[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramVelocityCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramDepth[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
@@ -31,8 +32,8 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12Resource* _paramHudless[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramHudlessCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
 
-    ID3D12GraphicsCommandList* _commandList[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
-    ID3D12CommandAllocator* _commandAllocators[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
+    // ID3D12GraphicsCommandList* _commandList[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
+    // ID3D12CommandAllocator* _commandAllocators[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
 
     bool CreateBufferResource(ID3D12Device* InDevice, ID3D12Resource* InSource, D3D12_RESOURCE_STATES InState,
                               ID3D12Resource** OutResource, bool UAV = false, bool depth = false);
@@ -52,7 +53,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     virtual void CreateContext(ID3D12Device* device, IFeature* upscalerContext) = 0;
 
     virtual bool Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime) = 0;
-    virtual bool DispatchHudless(bool useHudless, double frameTime) = 0;
+    virtual bool DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime) = 0;
 
     virtual void* FrameGenerationContext() = 0;
     virtual void* SwapchainContext() = 0;
@@ -68,7 +69,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
                     bool makeCopy = false);
 
     bool IsFGCommandList(void* cmdList);
-    bool ExecuteHudlessCmdList();
+    ID3D12CommandList* ExecuteHudlessCmdList(ID3D12CommandQueue* queue = nullptr);
 
     IFGFeature_Dx12() = default;
 
