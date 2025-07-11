@@ -40,6 +40,7 @@ static bool _skipFGSwapChainCreation = false;
 // Swapchain frame counter
 static UINT64 _frameCounter = 0;
 static double _lastFrameTime = 0.0;
+static bool _fgPresentCalled = false;
 
 #pragma endregion
 
@@ -198,16 +199,14 @@ static bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnk
 static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 {
     if (State::Instance().isShuttingDown)
-    {
-        return S_OK;
-        // auto result = o_FGSCPresent(This, SyncInterval, Flags);
-        // return result;
-    }
+        return o_FGSCPresent(This, SyncInterval, Flags);
 
     auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
 
     if (willPresent)
     {
+        _fgPresentCalled = true;
+
         double ftDelta = 0.0f;
 
         auto now = Util::MillisecondsNow();
@@ -261,15 +260,6 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
             HooksDx::readbackBuffer->Unmap(0, nullptr);
             HooksDx::dx12UpscaleTrig = false;
         }
-
-        if (State::Instance().activeFgType == OptiFG && fg->IsActive() && fg->TargetFrame() < fg->FrameCount() &&
-            fg->UpscalerInputsReady())
-        {
-            LOG_DEBUG("Dispatch fg");
-            State::Instance().fgTrigSource = "Present";
-            fg->Present();
-            fg->ExecuteHudlessCmdList();
-        }
     }
 
     auto lockAccuired = false;
@@ -293,6 +283,24 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         LOG_TRACE("Accuired FG->Mutex: {}, fgMutexReleaseFrame: {}", fg->Mutex.getOwner(), _releaseMutexTargetFrame);
     }
 
+    // if (willPresent && State::Instance().currentCommandQueue != nullptr && State::Instance().activeFgType == OptiFG
+    // &&
+    //     fg->IsActive() && fg->TargetFrame() < fg->FrameCount() && fg->LastDispatchedFrame() != fg->FrameCount() &&
+    //     fg->UpscalerInputsReady())
+    //{
+    //     State::Instance().fgTrigSource = "Present";
+    //     fg->Present();
+
+    //    LOG_DEBUG("Dispatch hudless fg");
+    //    if (fg->DispatchHudless(nullptr, false, State::Instance().lastFrameTime))
+    //    {
+    //        auto result = fg->ExecuteHudlessCmdList(State::Instance().currentCommandQueue);
+
+    //        if (result != nullptr)
+    //            State::Instance().currentCommandQueue->ExecuteCommandLists(1, &result);
+    //    }
+    //}
+
     if (willPresent)
     {
         ResTrack_Dx12::ClearPossibleHudless();
@@ -314,32 +322,22 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     return result;
 }
 
-static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
-                       const DXGI_PRESENT_PARAMETERS* pPresentParameters, IUnknown* pDevice, HWND hWnd, bool isUWP)
+static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags,
+                         const DXGI_PRESENT_PARAMETERS* pPresentParameters, IUnknown* pDevice, HWND hWnd, bool isUWP)
 {
+    if (State::Instance().isShuttingDown)
+    {
+        if (pPresentParameters == nullptr)
+            return pSwapChain->Present(SyncInterval, Flags);
+        else
+            return ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
+    }
+
     LOG_DEBUG("{}", _frameCounter);
 
     HRESULT presentResult;
 
-    if (State::Instance().isShuttingDown)
-    {
-        if (pPresentParameters == nullptr)
-            presentResult = pSwapChain->Present(SyncInterval, Flags);
-        else
-            presentResult = ((IDXGISwapChain1*) pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
-
-        if (presentResult == S_OK)
-            LOG_TRACE("1 {}", (UINT) presentResult);
-        else
-            LOG_ERROR("1 {:X}", (UINT) presentResult);
-
-        return presentResult;
-    }
-
     auto willPresent = !(Flags & DXGI_PRESENT_TEST || Flags & DXGI_PRESENT_RESTART);
-
-    // if (State::Instance().activeFgType == OptiFG && State::Instance().currentFG != nullptr)
-    //     State::Instance().currentFG->CallbackMutex.lock();
 
     if (State::Instance().activeFgType != OptiFG && willPresent)
     {
@@ -355,25 +353,9 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
         LOG_DEBUG("Frametime: {0}", ftDelta);
     }
 
-    // Removing might cause issues, saved almost 1 ms
-    // if (hWnd != Util::GetProcessWindow())
-    // {
-    //    if (pPresentParameters == nullptr)
-    //        presentResult = pSwapChain->Present(SyncInterval, Flags);
-    //    else
-    //        presentResult = ((IDXGISwapChain1*)pSwapChain)->Present1(SyncInterval, Flags, pPresentParameters);
-
-    //    if (presentResult == S_OK)
-    //        LOG_TRACE("2 {}", (UINT)presentResult);
-    //    else
-    //        LOG_ERROR("2 {:X}", (UINT)presentResult);
-
-    //    return presentResult;
-    // }
-
-    ID3D12CommandQueue* cq = nullptr;
     ID3D11Device* device = nullptr;
     ID3D12Device* device12 = nullptr;
+    ID3D12CommandQueue* cq = nullptr;
 
     // try to obtain directx objects and find the path
     if (pDevice->QueryInterface(IID_PPV_ARGS(&device)) == S_OK)
@@ -401,9 +383,10 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
         }
     }
 
-    IFGFeature_Dx12* fg = nullptr;
-    if (State::Instance().currentFG != nullptr)
-        fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+    if (_fgPresentCalled)
+        _fgPresentCalled = false;
+
+    IFGFeature_Dx12* fg = State::Instance().currentFG;
 
     if (fg != nullptr)
         ReflexHooks::update(fg->IsActive(), false);
@@ -507,9 +490,6 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
         else
             LOG_ERROR("3 {:X}", (UINT) presentResult);
 
-        // if (State::Instance().activeFgType == OptiFG && State::Instance().currentFG != nullptr)
-        //     State::Instance().currentFG->CallbackMutex.unlock();
-
         return presentResult;
     }
 
@@ -567,9 +547,6 @@ static HRESULT Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags
         // Signal for pause
         fg->FgDone();
     }
-
-    // if (State::Instance().activeFgType == OptiFG && State::Instance().currentFG != nullptr)
-    //     State::Instance().currentFG->CallbackMutex.unlock();
 
     LOG_DEBUG("Done");
 
@@ -691,8 +668,8 @@ static HRESULT hkCreateSwapChainForCoreWindow(IDXGIFactory2* pFactory, IUnknown*
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) pWindow);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, (HWND) pWindow, Present, MenuOverlayDx::CleanupRenderTarget,
-                                       HooksDx::ReleaseDx12SwapChain, true);
+            new WrappedIDXGISwapChain4(realSC, readDevice, (HWND) pWindow, hkPresent,
+                                       MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, true);
 
         if (!_skipFGSwapChainCreation)
             State::Instance().currentSwapchain = *ppSwapChain;
@@ -842,7 +819,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         HooksDx::ReleaseDx12SwapChain(pDesc->OutputWindow);
 
-        auto fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+        auto fg = State::Instance().currentFG;
 
         ID3D12CommandQueue* real = nullptr;
         if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &real))
@@ -974,7 +951,7 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDesc->OutputWindow);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, pDesc->OutputWindow, Present,
+            new WrappedIDXGISwapChain4(realSC, readDevice, pDesc->OutputWindow, hkPresent,
                                        MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, false);
 
         if (!_skipFGSwapChainCreation)
@@ -1114,7 +1091,7 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
 
         HooksDx::ReleaseDx12SwapChain(hWnd);
 
-        auto fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+        auto fg = State::Instance().currentFG;
 
         ID3D12CommandQueue* real = nullptr;
         if (!CheckForRealObject(__FUNCTION__, pDevice, (IUnknown**) &real))
@@ -1244,8 +1221,9 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         }
 
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain, (UINT64) hWnd);
-        *ppSwapChain = new WrappedIDXGISwapChain4(realSC, readDevice, hWnd, Present, MenuOverlayDx::CleanupRenderTarget,
-                                                  HooksDx::ReleaseDx12SwapChain, false);
+        *ppSwapChain =
+            new WrappedIDXGISwapChain4(realSC, readDevice, hWnd, hkPresent, MenuOverlayDx::CleanupRenderTarget,
+                                       HooksDx::ReleaseDx12SwapChain, false);
         LOG_DEBUG("Created new WrappedIDXGISwapChain4: {0:X}, pDevice: {1:X}", (UINT64) *ppSwapChain, (UINT64) pDevice);
 
         if (!_skipFGSwapChainCreation)
@@ -1830,7 +1808,7 @@ static HRESULT hkD3D11CreateDeviceAndSwapChain(IDXGIAdapter* pAdapter, D3D_DRIVE
         LOG_DEBUG("Created new swapchain: {0:X}, hWnd: {1:X}", (UINT64) *ppSwapChain,
                   (UINT64) pSwapChainDesc->OutputWindow);
         *ppSwapChain =
-            new WrappedIDXGISwapChain4(realSC, readDevice, pSwapChainDesc->OutputWindow, Present,
+            new WrappedIDXGISwapChain4(realSC, readDevice, pSwapChainDesc->OutputWindow, hkPresent,
                                        MenuOverlayDx::CleanupRenderTarget, HooksDx::ReleaseDx12SwapChain, false);
 
         if (!_skipFGSwapChainCreation)
@@ -2583,9 +2561,7 @@ void HooksDx::HookDxgi()
 
 void HooksDx::ReleaseDx12SwapChain(HWND hwnd)
 {
-    IFGFeature_Dx12* fg = nullptr;
-    if (State::Instance().currentFG != nullptr)
-        fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+    IFGFeature_Dx12* fg = State::Instance().currentFG;
 
     if (fg != nullptr && fg->SwapchainContext() != nullptr)
         fg->ReleaseSwapchain(hwnd);
