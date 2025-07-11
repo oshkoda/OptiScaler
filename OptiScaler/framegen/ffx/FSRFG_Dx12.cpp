@@ -96,6 +96,8 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
 {
     LOG_DEBUG("(FG) running, frame: {0}", _frameCount);
 
+    _lastDispatchedFrame = _frameCount;
+
     if (State::Instance().FSRFGFTPchanged)
         ConfigureFramePaceTuning();
 
@@ -264,6 +266,8 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
 
 bool FSRFG_Dx12::DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime)
 {
+    _lastDispatchedFrame = _frameCount;
+
     LOG_DEBUG("useHudless: {}, frameTime: {}", useHudless, frameTime);
 
     if (State::Instance().FSRFGFTPchanged)

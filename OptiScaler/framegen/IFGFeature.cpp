@@ -66,4 +66,6 @@ void IFGFeature::UpdateTarget()
 
 UINT64 IFGFeature::FrameCount() { return _frameCount; }
 
+UINT64 IFGFeature::LastDispatchedFrame() { return _lastDispatchedFrame; }
+
 UINT64 IFGFeature::TargetFrame() { return _targetFrame; }

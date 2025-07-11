@@ -90,7 +90,6 @@ void IFGFeature_Dx12::SetVelocity(ID3D12GraphicsCommandList* cmdList, ID3D12Reso
                                   D3D12_RESOURCE_STATES state)
 {
     auto index = GetIndex();
-    LOG_TRACE("Setting velocity, index: {}", index);
 
     if (cmdList == nullptr)
         return;
@@ -121,7 +120,10 @@ void IFGFeature_Dx12::SetVelocity(ID3D12GraphicsCommandList* cmdList, ID3D12Reso
                             D3D12_RESOURCE_STATE_COPY_DEST);
 
             if (result)
+            {
+                LOG_TRACE("Setting velocity from flip, index: {}", index);
                 _paramVelocity[index] = _paramVelocityCopy[index];
+            }
         }
 
         return;
@@ -130,6 +132,7 @@ void IFGFeature_Dx12::SetVelocity(ID3D12GraphicsCommandList* cmdList, ID3D12Reso
     if (Config::Instance()->FGMakeMVCopy.value_or_default() &&
         CopyResource(cmdList, velocity, &_paramVelocityCopy[index], state))
     {
+        LOG_TRACE("Setting velocity, index: {}", index);
         _paramVelocity[index] = _paramVelocityCopy[index];
         return;
     }
@@ -138,7 +141,6 @@ void IFGFeature_Dx12::SetVelocity(ID3D12GraphicsCommandList* cmdList, ID3D12Reso
 void IFGFeature_Dx12::SetDepth(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* depth, D3D12_RESOURCE_STATES state)
 {
     auto index = GetIndex();
-    LOG_TRACE("Setting depth, index: {}", index);
 
     if (cmdList == nullptr)
         return;
@@ -169,7 +171,10 @@ void IFGFeature_Dx12::SetDepth(ID3D12GraphicsCommandList* cmdList, ID3D12Resourc
                             D3D12_RESOURCE_STATE_COPY_DEST);
 
             if (result)
+            {
+                LOG_TRACE("Setting depth from flip, index: {}", index);
                 _paramDepth[index] = _paramDepthCopy[index];
+            }
         }
 
         return;
@@ -178,6 +183,7 @@ void IFGFeature_Dx12::SetDepth(ID3D12GraphicsCommandList* cmdList, ID3D12Resourc
     if (Config::Instance()->FGMakeDepthCopy.value_or_default() &&
         CopyResource(cmdList, depth, &_paramDepthCopy[index], state))
     {
+        LOG_TRACE("Setting depth, index: {}", index);
         _paramDepth[index] = _paramDepthCopy[index];
     }
 }
@@ -186,12 +192,11 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
                                  D3D12_RESOURCE_STATES state, bool makeCopy)
 {
     auto index = GetIndex();
-    LOG_TRACE("Setting hudless, index: {}, resource: {:X}", index, (size_t) hudless);
+    LOG_TRACE("Index: {}, Resource: {:X}, CmdList: {:X}", index, (size_t) hudless, (size_t) cmdList);
 
-    if (cmdList == nullptr && !makeCopy)
+    if (cmdList == nullptr || !makeCopy)
     {
         _paramHudless[index] = hudless;
-        SetHudlessReady();
         return;
     }
 
@@ -199,13 +204,11 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
         _paramHudless[index] = _paramHudlessCopy[index];
     else
         _paramHudless[index] = hudless;
-
-    SetHudlessReady();
 }
 
 void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
-        return;
+    return;
 
     // if (_commandAllocators[0] != nullptr)
     //     return;

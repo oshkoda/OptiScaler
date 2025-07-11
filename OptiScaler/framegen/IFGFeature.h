@@ -20,6 +20,7 @@ class IFGFeature
     UINT _reset = 0;
 
     UINT64 _frameCount = 0;
+    UINT64 _lastDispatchedFrame = 0;
     UINT64 _lastUpscaledFrameId = 0;
 
     bool _isActive = false;
@@ -39,7 +40,7 @@ class IFGFeature
     virtual void UpscaleEnd() = 0;
     virtual void Present() = 0;
 
-    virtual void SetVelocityAndDepthReady() = 0;
+    virtual void SetUpscaleInputsReady() = 0;
     virtual void SetHudlessReady() = 0;
     virtual void SetHudlessDispatchReady() = 0;
 
@@ -64,6 +65,7 @@ class IFGFeature
     void UpdateTarget();
 
     UINT64 FrameCount();
+    UINT64 LastDispatchedFrame();
     UINT64 TargetFrame();
 
     IFGFeature() = default;
