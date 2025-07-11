@@ -1678,7 +1678,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         FrameGen_Dx12::fgCopyCommandQueue->ExecuteCommandLists(1, cl);
 #endif
 
-        LOG_DEBUG("(FG) copy buffers done, frame: {0}", deviceContext->feature->FrameCount());
+        LOG_DEBUG("(FG) copy buffers done, frame: {0}", fg->FrameCount());
     }
 
     // Record the first timestamp
