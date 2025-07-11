@@ -10,16 +10,22 @@
 // #define DEBUG_TRACKING
 
 #ifdef DEBUG_TRACKING
+#define LOG_TRACK(msg, ...) spdlog::debug(__FUNCTION__ " " msg, ##__VA_ARGS__)
+#else
+#define LOG_TRACK(msg, ...)
+#endif
+
+#ifdef DEBUG_TRACKING
 static void TestResource(ResourceInfo* info)
 {
-    if (info == nullptr || info->buffer == nullptr || (size_t) info->buffer == 0xfdfdfdfd)
+    if (info == nullptr || info->buffer == nullptr)
         return;
 
     auto desc = info->buffer->GetDesc();
 
     if (desc.Width != info->width || desc.Height != info->height || desc.Format != info->format)
     {
-        LOG_WARN("Resource mismatch!!");
+        LOG_WARN("Resource mismatch: {:X}, info: {:X}", (size_t) info->buffer, (size_t) info);
         __debugbreak();
     }
 }
@@ -48,6 +54,10 @@ typedef struct HeapInfo
         : cpuStart(cpuStart), cpuEnd(cpuEnd), gpuStart(gpuStart), gpuEnd(gpuEnd), numDescriptors(numResources),
           increment(increment), info(new ResourceInfo[numResources]), type(type), heap(heap), mutexIndex(mutexIndex)
     {
+        for (size_t i = 0; i < numDescriptors; i++)
+        {
+            info[i].buffer = nullptr;
+        }
     }
 
     ResourceInfo* GetByCpuHandle(SIZE_T cpuHandle) const
@@ -58,8 +68,7 @@ typedef struct HeapInfo
             return nullptr;
 
         {
-            // std::shared_lock<std::shared_mutex> lock(_heapMutex[mutexIndex]);
-            if (info[index].buffer == nullptr || (size_t) info[index].buffer == 0xfdfdfdfd)
+            if (info[index].buffer == nullptr)
                 return nullptr;
         }
 
@@ -78,8 +87,7 @@ typedef struct HeapInfo
             return nullptr;
 
         {
-            // std::shared_lock<std::shared_mutex> lock(_heapMutex[mutexIndex]);
-            if (info[index].buffer == nullptr || (size_t) info[index].buffer == 0xfdfdfdfd)
+            if (info[index].buffer == nullptr)
                 return nullptr;
         }
 
@@ -101,9 +109,7 @@ typedef struct HeapInfo
         TestResource(&setInfo);
 #endif
 
-        //_heapMutex[mutexIndex].lock();
         info[index] = setInfo;
-        //_heapMutex[mutexIndex].unlock();
 
         {
             _trMutex.lock();
@@ -112,6 +118,8 @@ typedef struct HeapInfo
                 _trackedResources[setInfo.buffer].push_back(&info[index]);
             else
                 _trackedResources[setInfo.buffer] = { &info[index] };
+
+            LOG_TRACK("Add resource: {:X} to info: {:X}", (size_t) setInfo.buffer, (size_t) &info[index]);
 
             _trMutex.unlock();
         }
@@ -128,9 +136,7 @@ typedef struct HeapInfo
         TestResource(&setInfo);
 #endif
 
-        //_heapMutex[mutexIndex].lock();
         info[index] = setInfo;
-        //_heapMutex[mutexIndex].unlock();
 
         {
             _trMutex.lock();
@@ -139,6 +145,8 @@ typedef struct HeapInfo
                 _trackedResources[setInfo.buffer].push_back(&info[index]);
             else
                 _trackedResources[setInfo.buffer] = { &info[index] };
+
+            LOG_TRACK("Add resource: {:X} to info: {:X}", (size_t) setInfo.buffer, (size_t) &info[index]);
 
             _trMutex.unlock();
         }
@@ -151,31 +159,32 @@ typedef struct HeapInfo
         if (index >= numDescriptors)
             return;
 
-        if (info[index].buffer != nullptr && (size_t) info[index].buffer != 0xfdfdfdfd)
+        if (info[index].buffer != nullptr)
         {
+            _trMutex.lock();
+
+            LOG_TRACK("Resource: {:X}", (size_t) info[index].buffer);
+
             if (_trackedResources.contains(info[index].buffer))
             {
-                _trMutex.lock();
-
                 auto vector = &_trackedResources[info[index].buffer];
 
                 for (size_t i = 0; i < vector->size(); i++)
                 {
                     if (vector->at(i) == &info[index])
                     {
+                        LOG_TRACK("Erase from _trackedResources info: {:X}", (size_t) vector->at(i));
                         vector->erase(vector->begin() + i);
                         break;
                     }
                 }
-
-                _trMutex.unlock();
             }
+
+            _trMutex.unlock();
         }
 
-        //_heapMutex[mutexIndex].lock();
         info[index].buffer = nullptr;
         info[index].lastUsedFrame = 0;
-        //_heapMutex[mutexIndex].unlock();
     }
 
     void ClearByGpuHandle(SIZE_T gpuHandle) const
@@ -185,40 +194,40 @@ typedef struct HeapInfo
         if (index >= numDescriptors)
             return;
 
-        if (info[index].buffer != nullptr && (size_t) info[index].buffer != 0xfdfdfdfd)
+        if (info[index].buffer != nullptr)
         {
+            _trMutex.lock();
+
+            LOG_TRACK("Resource: {:X}", (size_t) info[index].buffer);
+
             if (_trackedResources.contains(info[index].buffer))
             {
-                _trMutex.lock();
-
                 auto vector = &_trackedResources[info[index].buffer];
 
                 for (size_t i = 0; i < vector->size(); i++)
                 {
                     if (vector->at(i) == &info[index])
                     {
+                        LOG_TRACK("Erase from _trackedResources info: {:X}", (size_t) vector->at(i));
                         vector->erase(vector->begin() + i);
                         break;
                     }
                 }
-
-                _trMutex.unlock();
             }
+
+            _trMutex.unlock();
         }
 
-        //_heapMutex[mutexIndex].lock();
         info[index].buffer = nullptr;
         info[index].lastUsedFrame = 0;
-        //_heapMutex[mutexIndex].unlock();
     }
-
-} heap_info;
+};
 
 typedef struct ResourceHeapInfo
 {
     SIZE_T cpuStart = NULL;
     SIZE_T gpuStart = NULL;
-} resource_heap_info;
+};
 
 class ResTrack_Dx12
 {
