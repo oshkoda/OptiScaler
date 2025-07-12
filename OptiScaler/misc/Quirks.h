@@ -18,6 +18,7 @@ enum class GameQuirk : uint64_t
     DisableUseFsrInputValues,
     EnableVulkanSpoofing,
     EnableVulkanExtensionSpoofing,
+    DisableOptiXessPipelineCreation,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -64,7 +65,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNonNvidia), // Seems to fix real DLSS
 
     // Crysis 3 Remastered
-    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+    // no spoof needed for DLSS inputs
+    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
@@ -87,10 +89,11 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("afop.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs, GameQuirk::DisableDxgiSpoofing),
 
     // Forza Motorsport 8
-    QUIRK_ENTRY("forza_steamworks_release_final.exe", GameQuirk::DisableFSR2Inputs,
-                GameQuirk::DisableFSR3Inputs), // Steam
+    // Steam
+    QUIRK_ENTRY("forza_steamworks_release_final.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
+    // MS Store
     QUIRK_ENTRY("forza_gaming.desktop.x64_release_final.exe", GameQuirk::DisableFSR2Inputs,
-                GameQuirk::DisableFSR3Inputs), // MS Store
+                GameQuirk::DisableFSR3Inputs),
 
     // F1 22
     QUIRK_ENTRY("f1_22.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
@@ -130,22 +133,41 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("thecallistoprotocol-win64-shipping.exe", GameQuirk::DisableUseFsrInputValues),
 
     // HITMAN World of Assassination
-    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing),
 
     // Marvel's Guardians of the Galaxy
-    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+    // no spoof needed for DLSS inputs
+    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing),
+
+    // ELDEN RING NIGHTREIGN
+    // no spoof needed for DLSS inputs
+    QUIRK_ENTRY("nightreign.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableOptiXessPipelineCreation),
 
     // Returnal
-    QUIRK_ENTRY("returnal-win64-shipping.exe",
-                GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs, but no DLSSG and Reflex
+    // no spoof needed for DLSS inputs, but no DLSSG and Reflex
+    QUIRK_ENTRY("returnal-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing),
 
     // UNCHARTED: Legacy of Thieves Collection
-    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+    // no spoof needed for DLSS inputs
+    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
 
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG,
+                GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing),
+
+    // Self-explanatory
+    QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
+    QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
+    QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
+
     // VULKAN
+    // ------
 
     // No Man's Sky
     QUIRK_ENTRY("nms.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
@@ -156,14 +178,6 @@ static const QuirkEntry quirkTable[] = {
     // Enshrouded
     QUIRK_ENTRY("enshrouded.exe", GameQuirk::EnableVulkanSpoofing, GameQuirk::EnableVulkanExtensionSpoofing),
 
-    // Self-explanatory
-    QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG,
-                GameQuirk::DisableDxgiSpoofing),                  // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("witcher3.exe", GameQuirk::DisableDxgiSpoofing),  // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("alanwake2.exe", GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
-    QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
-    QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
-    QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
 };
 
 static flag_set<GameQuirk> getQuirksForExe(std::string exeName)
@@ -217,6 +231,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Dxgi spoofing disabled by default");
     if (quirks & GameQuirk::DisableDxgiSpoofing)
         spdlog::info("Quirk: Disable Use FSR Input Values");
+    if (quirks & GameQuirk::DisableOptiXessPipelineCreation)
+        spdlog::info("Quirk: Disable custom pipeline creation for XeSS");
 
     return;
 }

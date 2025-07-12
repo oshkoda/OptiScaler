@@ -963,6 +963,13 @@ static void CheckQuirks()
         !Config::Instance()->VulkanExtensionSpoofing.has_value())
         Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(true);
 
+    if (quirks & GameQuirk::DisableOptiXessPipelineCreation && !Config::Instance()->CreateHeaps.has_value() &&
+        !Config::Instance()->BuildPipelines.has_value())
+    {
+        Config::Instance()->CreateHeaps.set_volatile_value(false);
+        Config::Instance()->BuildPipelines.set_volatile_value(false);
+    }
+
     State::Instance().gameQuirks = quirks;
 }
 
