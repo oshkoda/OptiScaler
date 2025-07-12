@@ -130,7 +130,8 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
                     ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
             }
         }
-        else if ((desc.Width > scDesc.BufferDesc.Width || desc.Height > scDesc.BufferDesc.Height) &&
+        else if (desc.Height >= scDesc.BufferDesc.Height - 32 && desc.Height <= scDesc.BufferDesc.Height + 32 &&
+                 desc.Width >= scDesc.BufferDesc.Width - 32 && desc.Width <= scDesc.BufferDesc.Width + 32 &&
                  State::Instance().currentD3D12Device != nullptr)
         {
             if (CreateBufferResourceWithSize(State::Instance().currentD3D12Device, output,
@@ -153,11 +154,24 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
                 srcBox.left = 0;
                 srcBox.top = 0;
                 srcBox.front = 0;
-                srcBox.right = scDesc.BufferDesc.Width;
-                srcBox.bottom = scDesc.BufferDesc.Height;
                 srcBox.back = 1;
 
-                cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+                if (scDesc.BufferDesc.Width > desc.Width || scDesc.BufferDesc.Height > desc.Height)
+                {
+                    srcBox.right = desc.Width;
+                    srcBox.bottom = desc.Height;
+                    UINT top = (scDesc.BufferDesc.Height - desc.Height) / 2;
+                    UINT left = (scDesc.BufferDesc.Width - desc.Width) / 2;
+
+                    cmdList->CopyTextureRegion(&dstLocation, left, top, 0, &srcLocation, &srcBox);
+                }
+                else
+                {
+                    srcBox.right = scDesc.BufferDesc.Width;
+                    srcBox.bottom = scDesc.BufferDesc.Height;
+
+                    cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+                }
 
                 m_FrameGenerationConfig.HUDLessColor =
                     ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_COPY_DEST);

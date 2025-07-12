@@ -131,7 +131,7 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
     auto ret = InterlockedDecrement(&m_iRefcount);
     LOG_DEBUG_ONLY("Count: {}", ret);
 
-    ULONG relCount = 0;
+    ULONG relCount = 10;
 
     if (ret == 0)
     {
@@ -141,19 +141,19 @@ ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
         if (ClearTrig != nullptr)
             ClearTrig(true, Handle);
 
-        if (m_pReal4 != nullptr)
+        if (m_pReal4 != nullptr && relCount > 0)
             relCount = m_pReal4->Release();
 
-        if (m_pReal3 != nullptr)
+        if (m_pReal3 != nullptr && relCount > 0)
             relCount = m_pReal3->Release();
 
-        if (m_pReal2 != nullptr)
+        if (m_pReal2 != nullptr && relCount > 0)
             relCount = m_pReal2->Release();
 
-        if (m_pReal1 != nullptr)
+        if (m_pReal1 != nullptr && relCount > 0)
             relCount = m_pReal1->Release();
 
-        if (m_pReal != nullptr)
+        if (m_pReal != nullptr && relCount > 0)
             relCount = m_pReal->Release();
 
         LOG_INFO("{} released", id);
