@@ -366,8 +366,8 @@ class Config
     CustomOptional<bool> FGImmediateCapture { false };
     CustomOptional<bool> FGHudfixHalfSync { false };
     CustomOptional<bool> FGHudfixFullSync { false };
-    CustomOptional<bool> FGImmediatelyExecute { true };
-    // CustomOptional<bool> FGWaitForNextExecute { false };
+    CustomOptional<bool> FGDontUseSwapchainBuffers { false };
+    // CustomOptional<bool> FGImmediatelyExecute { true };
     // CustomOptional<bool> FGExecuteAfterCallback { false };
 
     // OptiFG - Resource Tracking

@@ -325,7 +325,14 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers(UINT BufferCount
     LOG_DEBUG("BufferCount: {0}, Width: {1}, Height: {2}, NewFormat: {3}, SwapChainFlags: {4:X}", BufferCount, Width,
               Height, (UINT) NewFormat, SwapChainFlags);
 
+    if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = true;
+
     result = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
+
+    if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = false;
+
     if (result == S_OK && State::Instance().currentFeature == nullptr)
     {
         State::Instance().screenWidth = Width;
@@ -600,8 +607,15 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::ResizeBuffers1(UINT BufferCoun
         "BufferCount: {0}, Width: {1}, Height: {2}, NewFormat: {3}, SwapChainFlags: {4:X}, pCreationNodeMask: {5}",
         BufferCount, Width, Height, (UINT) Format, SwapChainFlags, *pCreationNodeMask);
 
+    if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = true;
+
     result =
         m_pReal3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags, pCreationNodeMask, ppPresentQueue);
+
+    if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = false;
+
     if (result == S_OK && State::Instance().currentFeature == nullptr)
     {
         State::Instance().screenWidth = Width;

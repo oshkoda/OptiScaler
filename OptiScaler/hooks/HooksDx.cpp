@@ -829,7 +829,13 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         State::Instance().skipHeapCapture = true;
         State::Instance().skipDxgiLoadChecks = true;
 
+        if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+            State::Instance().skipHeapCapture = true;
+
         auto scResult = fg->CreateSwapchain(pFactory, real, pDesc, ppSwapChain);
+
+        if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+            State::Instance().skipHeapCapture = false;
 
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipHeapCapture = false;
@@ -928,9 +934,15 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
         State::Instance().activeFgType = Config::Instance()->FGType.value_or_default();
     }
 
+    if (!_skipFGSwapChainCreation && Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = true;
+
     State::Instance().skipDxgiLoadChecks = true;
     auto result = oCreateSwapChain(pFactory, pDevice, pDesc, ppSwapChain);
     State::Instance().skipDxgiLoadChecks = false;
+
+    if (!_skipFGSwapChainCreation && Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = false;
 
     if (result == S_OK)
     {
@@ -1101,7 +1113,13 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         State::Instance().skipHeapCapture = true;
         State::Instance().skipDxgiLoadChecks = true;
 
+        if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+            State::Instance().skipHeapCapture = true;
+
         auto scResult = fg->CreateSwapchain1(This, real, hWnd, pDesc, pFullscreenDesc, ppSwapChain);
+
+        if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+            State::Instance().skipHeapCapture = false;
 
         State::Instance().skipDxgiLoadChecks = false;
         State::Instance().skipHeapCapture = false;
@@ -1199,9 +1217,15 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
         State::Instance().activeFgType = Config::Instance()->FGType.value_or_default();
     }
 
+    if (!_skipFGSwapChainCreation && Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = true;
+
     State::Instance().skipDxgiLoadChecks = true;
     auto result = oCreateSwapChainForHwnd(This, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
     State::Instance().skipDxgiLoadChecks = false;
+
+    if (!_skipFGSwapChainCreation && Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
+        State::Instance().skipHeapCapture = false;
 
     if (result == S_OK)
     {
