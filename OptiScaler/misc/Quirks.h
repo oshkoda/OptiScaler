@@ -63,6 +63,9 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNonNvidia), // Seems to fix real DLSS
 
+    // Crysis 3 Remastered
+    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
 
@@ -129,12 +132,15 @@ static const QuirkEntry quirkTable[] = {
     // HITMAN World of Assassination
     QUIRK_ENTRY("hitman3.exe", GameQuirk::DisableDxgiSpoofing), // SL spoof enough to unlock everything DLSS
 
+    // Marvel's Guardians of the Galaxy
+    QUIRK_ENTRY("gotg.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+
     // Returnal
     QUIRK_ENTRY("returnal-win64-shipping.exe",
                 GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs, but no DLSSG and Reflex
 
     // UNCHARTED: Legacy of Thieves Collection
-    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("u4.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
     QUIRK_ENTRY("u4-l.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
