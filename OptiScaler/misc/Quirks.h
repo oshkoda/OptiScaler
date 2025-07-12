@@ -63,6 +63,9 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("monsterhunterwilds.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("monsterhunterrise.exe", GameQuirk::RestoreComputeSigOnNonNvidia), // Seems to fix real DLSS
 
+    // Crysis 3 Remastered
+    QUIRK_ENTRY("crysis3remastered.exe", GameQuirk::DisableDxgiSpoofing), // no spoof needed for DLSS inputs
+
     // Dead Rising Deluxe Remaster (including the demo)
     QUIRK_ENTRY("drdr.exe", GameQuirk::RestoreComputeSigOnNonNvidia, GameQuirk::DisableDxgiSpoofing),
 
