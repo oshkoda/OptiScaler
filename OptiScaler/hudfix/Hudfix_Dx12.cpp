@@ -249,9 +249,8 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
         // Extended size check
-        if (!(Config::Instance()->FGHUDFixExtended.value_or_default() && resDesc.Height >= scDesc.BufferDesc.Height &&
-              resDesc.Height <= scDesc.BufferDesc.Height + 32 && resDesc.Width >= scDesc.BufferDesc.Width &&
-              resDesc.Width <= scDesc.BufferDesc.Width + 32))
+        if (!(resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
+              resDesc.Width >= scDesc.BufferDesc.Width - 32 && resDesc.Width <= scDesc.BufferDesc.Width + 32))
         {
             return false;
         }
@@ -659,11 +658,24 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
                 srcBox.left = 0;
                 srcBox.top = 0;
                 srcBox.front = 0;
-                srcBox.right = scDesc.BufferDesc.Width;
-                srcBox.bottom = scDesc.BufferDesc.Height;
                 srcBox.back = 1;
 
-                cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+                if (scDesc.BufferDesc.Width > resource->width || scDesc.BufferDesc.Height > resource->height)
+                {
+                    srcBox.right = resource->width;
+                    srcBox.bottom = resource->height;
+                    UINT top = (scDesc.BufferDesc.Height - resource->height) / 2;
+                    UINT left = (scDesc.BufferDesc.Width - resource->width) / 2;
+
+                    cmdList->CopyTextureRegion(&dstLocation, left, top, 0, &srcLocation, &srcBox);
+                }
+                else
+                {
+                    srcBox.right = scDesc.BufferDesc.Width;
+                    srcBox.bottom = scDesc.BufferDesc.Height;
+
+                    cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+                }
 
                 // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
                 if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)

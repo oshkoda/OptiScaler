@@ -138,9 +138,8 @@ bool ResTrack_Dx12::CheckResource(ID3D12Resource* resource)
     auto resDesc = resource->GetDesc();
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
-        return Config::Instance()->FGHUDFixExtended.value_or_default() && resDesc.Height >= scDesc.BufferDesc.Height &&
-               resDesc.Height <= scDesc.BufferDesc.Height + 32 && resDesc.Width >= scDesc.BufferDesc.Width &&
-               resDesc.Width <= scDesc.BufferDesc.Width + 32;
+        return resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
+               resDesc.Width >= scDesc.BufferDesc.Width - 32 && resDesc.Width <= scDesc.BufferDesc.Width + 32;
     }
 
     return true;
@@ -594,7 +593,6 @@ void ResTrack_Dx12::hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource*
     if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
         !CheckResource(pResource))
     {
-        LOG_TRACK("Unbind: {:X}", DestDescriptor.ptr);
 
         auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
 
@@ -648,7 +646,6 @@ void ResTrack_Dx12::hkCreateShaderResourceView(ID3D12Device* This, ID3D12Resourc
     if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
         !CheckResource(pResource))
     {
-        LOG_TRACK("Unbind: {:X}", DestDescriptor.ptr);
 
         auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
 
@@ -702,9 +699,8 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
     if (pResource == nullptr || pDesc == nullptr || pDesc->ViewDimension != D3D12_SRV_DIMENSION_TEXTURE2D ||
         !CheckResource(pResource))
     {
-        LOG_TRACK("Unbind: {:X}", DestDescriptor.ptr);
-
         auto heap = GetHeapByCpuHandleSRV(DestDescriptor.ptr);
+
         if (heap != nullptr)
             heap->ClearByCpuHandle(DestDescriptor.ptr);
 
