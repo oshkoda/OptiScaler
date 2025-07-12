@@ -116,10 +116,53 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
     DXGI_SWAP_CHAIN_DESC scDesc {};
     _swapChain->GetDesc(&scDesc);
     auto desc = output->GetDesc();
-    if (desc.Format == scDesc.BufferDesc.Format)
+    if (Config::Instance()->FGHUDFixExtended.value_or_default() && desc.Format == scDesc.BufferDesc.Format)
     {
-        LOG_DEBUG("(FG) desc.Format == HooksDx::swapchainFormat, using for hudless!");
-        m_FrameGenerationConfig.HUDLessColor = ffxApiGetResourceDX12(output, FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+        if (desc.Width == scDesc.BufferDesc.Width && desc.Height == scDesc.BufferDesc.Height)
+        {
+            if (CreateBufferResource(State::Instance().currentD3D12Device, output, D3D12_RESOURCE_STATE_COPY_DEST,
+                                     &_paramHudless[frameIndex], true, false))
+            {
+                LOG_DEBUG("(FG) desc.Format == HooksDx::swapchainFormat, using for hudless!");
+                cmdList->CopyResource(_paramHudless[frameIndex], output);
+
+                m_FrameGenerationConfig.HUDLessColor =
+                    ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+            }
+        }
+        else if ((desc.Width > scDesc.BufferDesc.Width || desc.Height > scDesc.BufferDesc.Height) &&
+                 State::Instance().currentD3D12Device != nullptr)
+        {
+            if (CreateBufferResourceWithSize(State::Instance().currentD3D12Device, output,
+                                             D3D12_RESOURCE_STATE_COPY_DEST, &_paramHudless[frameIndex],
+                                             scDesc.BufferDesc.Width, scDesc.BufferDesc.Height, true, false))
+            {
+                D3D12_TEXTURE_COPY_LOCATION srcLocation;
+                ZeroMemory(&srcLocation, sizeof(srcLocation));
+                srcLocation.pResource = output;
+                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                srcLocation.SubresourceIndex = 0; // copy from mip 0, array slice 0
+
+                D3D12_TEXTURE_COPY_LOCATION dstLocation;
+                ZeroMemory(&dstLocation, sizeof(dstLocation));
+                dstLocation.pResource = _paramHudless[frameIndex];
+                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                dstLocation.SubresourceIndex = 0; // paste into mip 0, array slice 0
+
+                D3D12_BOX srcBox;
+                srcBox.left = 0;
+                srcBox.top = 0;
+                srcBox.front = 0;
+                srcBox.right = scDesc.BufferDesc.Width;
+                srcBox.bottom = scDesc.BufferDesc.Height;
+                srcBox.back = 1;
+
+                cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+
+                m_FrameGenerationConfig.HUDLessColor =
+                    ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_COPY_DEST);
+            }
+        }
     }
     else
     {

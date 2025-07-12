@@ -3,6 +3,64 @@
 #include <State.h>
 #include <Config.h>
 
+bool IFGFeature_Dx12::CreateBufferResourceWithSize(ID3D12Device* device, ID3D12Resource* source,
+                                                   D3D12_RESOURCE_STATES state, ID3D12Resource** target, UINT width,
+                                                   UINT height, bool UAV, bool depth)
+{
+    if (device == nullptr || source == nullptr)
+        return false;
+
+    auto inDesc = source->GetDesc();
+
+    if (UAV)
+        inDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+    if (depth)
+        inDesc.Format = DXGI_FORMAT_R32_FLOAT;
+
+    if (*target != nullptr)
+    {
+        auto bufDesc = (*target)->GetDesc();
+
+        if (bufDesc.Width != width || bufDesc.Height != height || bufDesc.Format != inDesc.Format ||
+            bufDesc.Flags != inDesc.Flags)
+        {
+            (*target)->Release();
+            (*target) = nullptr;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    D3D12_HEAP_PROPERTIES heapProperties;
+    D3D12_HEAP_FLAGS heapFlags;
+    HRESULT hr = source->GetHeapProperties(&heapProperties, &heapFlags);
+
+    if (hr != S_OK)
+    {
+        LOG_ERROR("GetHeapProperties result: {:X}", (UINT64) hr);
+        return false;
+    }
+
+    inDesc.Width = width;
+    inDesc.Height = height;
+
+    hr = device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &inDesc, state, nullptr,
+                                         IID_PPV_ARGS(target));
+
+    if (hr != S_OK)
+    {
+        LOG_ERROR("CreateCommittedResource result: {:X}", (UINT64) hr);
+        return false;
+    }
+
+    LOG_DEBUG("Created new one: {}x{}", inDesc.Width, inDesc.Height);
+
+    return true;
+}
+
 bool IFGFeature_Dx12::CreateBufferResource(ID3D12Device* device, ID3D12Resource* source, D3D12_RESOURCE_STATES state,
                                            ID3D12Resource** target, bool UAV, bool depth)
 {

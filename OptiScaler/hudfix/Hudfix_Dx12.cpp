@@ -127,6 +127,58 @@ bool Hudfix_Dx12::CreateBufferResource(ID3D12Device* InDevice, ResourceInfo* InS
     return true;
 }
 
+bool Hudfix_Dx12::CreateBufferResourceWithSize(ID3D12Device* InDevice, ResourceInfo* InSource,
+                                               D3D12_RESOURCE_STATES InState, ID3D12Resource** OutResource,
+                                               UINT InWidth, UINT InHeight)
+{
+    if (InDevice == nullptr || InSource == nullptr)
+        return false;
+
+    if (*OutResource != nullptr)
+    {
+        auto bufDesc = (*OutResource)->GetDesc();
+
+        if (bufDesc.Width != (UINT64) InWidth || bufDesc.Height != InHeight || bufDesc.Format != InSource->format)
+        {
+            (*OutResource)->Release();
+            (*OutResource) = nullptr;
+            LOG_WARN("Release {}x{}, new one: {}x{}", bufDesc.Width, bufDesc.Height, InWidth, InHeight);
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    D3D12_HEAP_PROPERTIES heapProperties;
+    D3D12_HEAP_FLAGS heapFlags;
+    HRESULT hr = InSource->buffer->GetHeapProperties(&heapProperties, &heapFlags);
+
+    if (hr != S_OK)
+    {
+        LOG_ERROR("GetHeapProperties result: {:X}", (UINT64) hr);
+        return false;
+    }
+
+    D3D12_RESOURCE_DESC texDesc = InSource->buffer->GetDesc();
+    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+    texDesc.Width = InWidth;
+    texDesc.Height = InHeight;
+
+    hr = InDevice->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &texDesc, InState, nullptr,
+                                           IID_PPV_ARGS(OutResource));
+
+    if (hr != S_OK)
+    {
+        LOG_ERROR("CreateCommittedResource result: {:X}", (UINT64) hr);
+        return false;
+    }
+
+    LOG_DEBUG("Created new one: {}x{}", InWidth, InHeight);
+    return true;
+}
+
 void Hudfix_Dx12::ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Resource* InResource,
                                   D3D12_RESOURCE_STATES InBeforeState, D3D12_RESOURCE_STATES InAfterState)
 {
@@ -190,49 +242,21 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     if (resource->width == 0 || resource->height == 0 || resource->buffer == nullptr)
         return false;
 
-    // LOG_DEBUG("Width: {}, Height: {}, Format: {}, Resource: {:X}", resource->width, resource->height,
-    //           (UINT) resource->format, (size_t) resource->buffer);
-
-    /*
-    *
-    * Was breaking immediate capture, disabled for now
-    *
-
-    // Check if info is valid
-
-    auto currentMs = Util::MillisecondsNow();
-    if (!Config::Instance()->FGAlwaysTrackHeaps.value_or_default() && resource->lastUsedFrame != 0 &&
-        (currentMs - resource->lastUsedFrame) > 0.3)
-    {
-        LOG_DEBUG("Resource {:X}, last used frame ({}) is too small ({}) from current one ({}) skipping resource!",
-                  (size_t) resource->buffer, currentMs - resource->lastUsedFrame, resource->lastUsedFrame, currentMs);
-
-        resource->lastUsedFrame = currentMs; // use it next time if timing is ok
-        return false;
-    }
-    */
-
-    // Check if resource is valid
-    // LOG_TRACE("Check resource if resource is still valid, if crashes here ResTrack is missing something");
-    // ID3D12Resource* testRes;
-    // auto queryResult = resource->buffer->QueryInterface(IID_PPV_ARGS(&testRes));
-    // if (queryResult != S_OK)
-    //{
-    //    // LOG_WARN("Resource is not valid anymore!");
-    //    return false;
-    //}
-
     // Get resource info
     auto resDesc = resource->buffer->GetDesc();
-
-    // Release test resource
-    // testRes->Release();
-    // testRes = nullptr;
 
     // dimensions not match
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
-        return false;
+        // Extended size check
+        if (!(Config::Instance()->FGHUDFixExtended.value_or_default() && resDesc.Height >= scDesc.BufferDesc.Height &&
+              resDesc.Height <= scDesc.BufferDesc.Height + 32 && resDesc.Width >= scDesc.BufferDesc.Width &&
+              resDesc.Width <= scDesc.BufferDesc.Width + 32))
+        {
+            return false;
+        }
+
+        resource->extended = true;
     }
 
     // check for resource flags
@@ -252,19 +276,12 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                   (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
                   Config::Instance()->FGHUDFixExtended.value_or_default());
 
-        // resource->lastUsedFrame = currentMs;
-
         return true;
     }
 
     // extended not active
     if (!Config::Instance()->FGHUDFixExtended.value_or_default())
     {
-        // LOG_TRACE("Width: {}/{}, Height: {}/{}, Format: {}/{}, Resource: {:X}, convertFormat: {} -> FALSE",
-        //           resDesc.Width, scDesc.BufferDesc.Width, resDesc.Height, scDesc.BufferDesc.Height,
-        //           (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
-        //           Config::Instance()->FGHUDFixExtended.value_or_default());
-
         return false;
     }
 
@@ -297,8 +314,6 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
                   resDesc.Width, scDesc.BufferDesc.Width, resDesc.Height, scDesc.BufferDesc.Height,
                   (UINT) resDesc.Format, (UINT) scDesc.BufferDesc.Format, (size_t) resource->buffer,
                   Config::Instance()->FGHUDFixExtended.value_or_default());
-
-        // resource->lastUsedFrame = currentMs;
 
         return true;
     }
@@ -583,28 +598,85 @@ bool Hudfix_Dx12::CheckForHudless(std::string callerName, ID3D12GraphicsCommandL
         }
 
         // Make a copy of resource to capture current state
-        if (CreateBufferResource(State::Instance().currentD3D12Device, resource, D3D12_RESOURCE_STATE_COPY_DEST,
-                                 &_captureBuffer[fIndex]))
+        if (!resource->extended)
         {
-            LOG_DEBUG("Create a copy of resource: {:X}", (size_t) resource->buffer);
+            if (CreateBufferResource(State::Instance().currentD3D12Device, resource, D3D12_RESOURCE_STATE_COPY_DEST,
+                                     &_captureBuffer[fIndex]))
+            {
+                LOG_DEBUG("Create a copy of resource: {:X}", (size_t) resource->buffer);
 
-            // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
-            if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
-                ResourceBarrier(cmdList, resource->buffer, state, D3D12_RESOURCE_STATE_COPY_SOURCE);
+                // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
+                if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
+                    ResourceBarrier(cmdList, resource->buffer, state, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-            cmdList->CopyResource(_captureBuffer[fIndex], resource->buffer);
+                cmdList->CopyResource(_captureBuffer[fIndex], resource->buffer);
 
-            // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
-            if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
-                ResourceBarrier(cmdList, resource->buffer, D3D12_RESOURCE_STATE_COPY_SOURCE, state);
+                // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
+                if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
+                    ResourceBarrier(cmdList, resource->buffer, D3D12_RESOURCE_STATE_COPY_SOURCE, state);
 
-            LOG_DEBUG("Copy created");
+                LOG_DEBUG("Copy created");
+            }
+            else
+            {
+                LOG_WARN("Can't create _captureBuffer!");
+                _captureCounter[fIndex]--;
+                break;
+            }
         }
         else
         {
-            LOG_WARN("Can't create _captureBuffer!");
-            _captureCounter[fIndex]--;
-            break;
+            DXGI_SWAP_CHAIN_DESC scDesc {};
+            if (State::Instance().currentSwapchain->GetDesc(&scDesc) != S_OK)
+            {
+                LOG_WARN("Can't get swapchain desc!");
+                break;
+            }
+
+            if (CreateBufferResourceWithSize(State::Instance().currentD3D12Device, resource,
+                                             D3D12_RESOURCE_STATE_COPY_DEST, &_captureBuffer[fIndex],
+                                             scDesc.BufferDesc.Width, scDesc.BufferDesc.Height))
+            {
+                LOG_DEBUG("Create a copy of resource: {:X}", (size_t) resource->buffer);
+
+                // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
+                if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
+                    ResourceBarrier(cmdList, resource->buffer, state, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+                D3D12_TEXTURE_COPY_LOCATION srcLocation;
+                ZeroMemory(&srcLocation, sizeof(srcLocation));
+                srcLocation.pResource = resource->buffer;
+                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                srcLocation.SubresourceIndex = 0; // copy from mip 0, array slice 0
+
+                D3D12_TEXTURE_COPY_LOCATION dstLocation;
+                ZeroMemory(&dstLocation, sizeof(dstLocation));
+                dstLocation.pResource = _captureBuffer[fIndex];
+                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                dstLocation.SubresourceIndex = 0; // paste into mip 0, array slice 0
+
+                D3D12_BOX srcBox;
+                srcBox.left = 0;
+                srcBox.top = 0;
+                srcBox.front = 0;
+                srcBox.right = scDesc.BufferDesc.Width;
+                srcBox.bottom = scDesc.BufferDesc.Height;
+                srcBox.back = 1;
+
+                cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+
+                // Using state D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE as skip flag
+                if (state != D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE)
+                    ResourceBarrier(cmdList, resource->buffer, D3D12_RESOURCE_STATE_COPY_SOURCE, state);
+
+                LOG_DEBUG("Copy created");
+            }
+            else
+            {
+                LOG_WARN("Can't create _captureBuffer!");
+                _captureCounter[fIndex]--;
+                break;
+            }
         }
 
         // needs conversion?

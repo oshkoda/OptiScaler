@@ -24,8 +24,6 @@ IFeature_Dx12::~IFeature_Dx12()
     if (State::Instance().isShuttingDown)
         return;
 
-    LOG_DEBUG("");
-
     if (Imgui != nullptr && Imgui.get() != nullptr)
         Imgui.reset();
 

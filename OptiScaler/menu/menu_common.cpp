@@ -2583,6 +2583,19 @@ bool MenuCommon::RenderMenu()
                         }
                         ShowHelpMarker("Delay HUDless capture, high values might cause crash!");
 
+                        ImGui::EndDisabled();
+
+                        auto hudExtended = Config::Instance()->FGHUDFixExtended.value_or_default();
+                        if (ImGui::Checkbox("FG Extended", &hudExtended))
+                        {
+                            LOG_DEBUG("Enabled set FGHUDFixExtended: {}", hudExtended);
+                            Config::Instance()->FGHUDFixExtended = hudExtended;
+                        }
+                        ShowHelpMarker("Extended format checks for possible hudless\nMight cause crash and slowdowns!");
+                        ImGui::SameLine(0.0f, 16.0f);
+
+                        ImGui::BeginDisabled(!Config::Instance()->FGHUDFix.value_or_default());
+
                         auto immediate = Config::Instance()->FGImmediateCapture.value_or_default();
                         if (ImGui::Checkbox("FG Immediate Capture", &immediate))
                         {
@@ -2591,15 +2604,6 @@ bool MenuCommon::RenderMenu()
                         }
                         ShowHelpMarker("Enables capturing of resources before shader execution.\nIncrease hudless "
                                        "capture chances but might cause capturing of unnecessary resources.");
-
-                        ImGui::SameLine(0.0f, 16.0f);
-                        auto hudExtended = Config::Instance()->FGHUDFixExtended.value_or_default();
-                        if (ImGui::Checkbox("FG Extended", &hudExtended))
-                        {
-                            LOG_DEBUG("Enabled set FGHUDFixExtended: {}", hudExtended);
-                            Config::Instance()->FGHUDFixExtended = hudExtended;
-                        }
-                        ShowHelpMarker("Extended format checks for possible hudless\nMight cause crash and slowdowns!");
 
                         ImGui::PopItemWidth();
 

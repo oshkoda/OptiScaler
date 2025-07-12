@@ -138,11 +138,10 @@ bool ResTrack_Dx12::CheckResource(ID3D12Resource* resource)
     auto resDesc = resource->GetDesc();
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
-        return false;
+        return Config::Instance()->FGHUDFixExtended.value_or_default() && resDesc.Height >= scDesc.BufferDesc.Height &&
+               resDesc.Height <= scDesc.BufferDesc.Height + 32 && resDesc.Width >= scDesc.BufferDesc.Width &&
+               resDesc.Width <= scDesc.BufferDesc.Width + 32;
     }
-
-    // LOG_TRACE("Resource: {:X} {}x{} == {}x{}", (size_t) resource, resDesc.Width, resDesc.Height,
-    //           scDesc.BufferDesc.Width, scDesc.BufferDesc.Height);
 
     return true;
 }
