@@ -422,25 +422,7 @@ bool FSRFG_Dx12::DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHud
         dfgPrepare.header.type = FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE;
         dfgPrepare.header.pNext = &backendDesc.header;
 
-        if (cmdList != nullptr)
-        {
-            dfgPrepare.commandList = cmdList;
-        }
-        else
-        {
-            // auto allocator = _commandAllocators[fIndex];
-            // auto result = allocator->Reset();
-
-            // if (result != S_OK)
-            //     return false;
-
-            // result = _commandList[fIndex]->Reset(allocator, nullptr);
-
-            // if (result != S_OK)
-            //     return false;
-
-            // dfgPrepare.commandList = _commandList[fIndex];
-        }
+        dfgPrepare.commandList = cmdList;
 
         dfgPrepare.frameID = _frameCount;
         dfgPrepare.flags = m_FrameGenerationConfig.flags;
@@ -719,7 +701,7 @@ bool FSRFG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
         _hwnd = desc->OutputWindow;
 
         // hack for RDR1
-        _swapChain->Release();
+        //_swapChain->Release();
 
         return true;
     }
