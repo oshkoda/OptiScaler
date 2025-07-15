@@ -2585,13 +2585,17 @@ void HooksDx::HookDxgi()
 
 void HooksDx::ReleaseDx12SwapChain(HWND hwnd)
 {
+    State::Instance().currentSwapchain = nullptr;
+
     IFGFeature_Dx12* fg = State::Instance().currentFG;
+    if (fg == nullptr)
+        return;
 
     // Skip if it's already being released
     if (fg->Mutex.getOwner() == 1)
         return;
 
-    if (fg != nullptr && fg->SwapchainContext() != nullptr)
+    if (fg->SwapchainContext() != nullptr)
         fg->ReleaseSwapchain(hwnd);
 }
 
