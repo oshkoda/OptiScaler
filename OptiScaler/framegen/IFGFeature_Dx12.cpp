@@ -266,12 +266,10 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
 
 void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
 {
-    return;
+    _device = InDevice;
 
     // if (_commandAllocators[0] != nullptr)
     //     return;
-
-    //_device = InDevice;
 
     // LOG_DEBUG("");
 
