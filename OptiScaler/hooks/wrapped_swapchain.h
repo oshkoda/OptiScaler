@@ -97,6 +97,8 @@ struct DECLSPEC_UUID("3af622a3-82d0-49cd-994f-cce05122c222") WrappedIDXGISwapCha
     PFN_SC_Release ReleaseTrig = nullptr;
     HWND Handle = nullptr;
 
+    OwnedMutex _refMutex;
+
 #ifdef USE_LOCAL_MUTEX
     OwnedMutex _localMutex;
 #endif

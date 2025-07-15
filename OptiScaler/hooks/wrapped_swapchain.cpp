@@ -20,12 +20,29 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain* real, IUnknown* p
       ReleaseTrig(releaseTrig), m_iRefcount(1), UWP(isUWP)
 {
     id = ++scCount;
-    LOG_INFO("{0} created, real: {1:X}", id, (UINT64) real);
+
     m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal1));
+    if (m_pReal1 != nullptr)
+        m_pReal->Release();
+
     m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal2));
+    if (m_pReal2 != nullptr)
+        m_pReal->Release();
+
     m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal3));
+    if (m_pReal3 != nullptr)
+        m_pReal->Release();
+
     m_pReal->QueryInterface(IID_PPV_ARGS(&m_pReal4));
+    if (m_pReal4 != nullptr)
+        m_pReal->Release();
+
+    m_pReal->AddRef();
+    auto refCount = m_pReal->Release();
+
     Device2 = Device;
+
+    LOG_INFO("{} created, real: {:X}, refCount: {}", id, (UINT64) real, refCount);
 }
 
 WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4() {}
@@ -33,6 +50,8 @@ WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4() {}
 //
 HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, void** ppvObject)
 {
+    LOG_TRACE("Caller: {}", Util::WhoIsTheCaller(_ReturnAddress()));
+
     if (riid == __uuidof(IDXGISwapChain))
     {
         AddRef();
@@ -121,42 +140,33 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
 
 ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::AddRef()
 {
-    InterlockedIncrement(&m_iRefcount);
-    LOG_DEBUG_ONLY("Count: {}", m_iRefcount);
+    LOG_TRACE("Waiting mutex, owner: {}", _refMutex.getOwner());
+    OwnedLockGuard lock(_refMutex, 1);
+    m_iRefcount++;
+    LOG_TRACE("Count: {}, caller: {}", m_iRefcount, Util::WhoIsTheCaller(_ReturnAddress()));
     return m_iRefcount;
 }
 
 ULONG STDMETHODCALLTYPE WrappedIDXGISwapChain4::Release()
 {
-    auto ret = InterlockedDecrement(&m_iRefcount);
-    LOG_DEBUG_ONLY("Count: {}", ret);
-
-    ULONG relCount = 10;
+    // LOG_TRACE("Waiting mutex, owner: {}", _refMutex.getOwner());
+    OwnedLockGuard lock(_refMutex, 2);
+    auto ret = --m_iRefcount;
+    // LOG_TRACE("Count: {}, caller: {}", ret, Util::WhoIsTheCaller(_ReturnAddress()));
 
     if (ret == 0)
     {
-        if (ReleaseTrig != nullptr)
-            ReleaseTrig(Handle);
+#ifdef USE_LOCAL_MUTEX
+        OwnedLockGuard lock(_localMutex, 999);
+#endif
 
         if (ClearTrig != nullptr)
             ClearTrig(true, Handle);
 
-        if (m_pReal4 != nullptr && relCount > 0)
-            relCount = m_pReal4->Release();
+        if (ReleaseTrig != nullptr)
+            ReleaseTrig(Handle);
 
-        if (m_pReal3 != nullptr && relCount > 0)
-            relCount = m_pReal3->Release();
-
-        if (m_pReal2 != nullptr && relCount > 0)
-            relCount = m_pReal2->Release();
-
-        if (m_pReal1 != nullptr && relCount > 0)
-            relCount = m_pReal1->Release();
-
-        if (m_pReal != nullptr && relCount > 0)
-            relCount = m_pReal->Release();
-
-        LOG_INFO("{} released", id);
+        auto refCount = m_pReal->Release();
 
         delete this;
     }
