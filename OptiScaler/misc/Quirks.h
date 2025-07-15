@@ -82,6 +82,11 @@ static const QuirkEntry quirkTable[] = {
     // Forgive Me Father 2
     QUIRK_ENTRY("fmf2-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
+    // Forza Horizon 5
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("forzahorizon5.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs,
+                GameQuirk::DisableDxgiSpoofing),
+
     // Revenge of the Savage Planet
     QUIRK_ENTRY("towers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
