@@ -602,6 +602,7 @@ void MenuOverlayDx::Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
             CleanupRenderTargetDx11(false);
 
             g_pd3dDevice = device;
+            g_pd3dDevice->AddRef();
 
             CreateRenderTargetDx11(pSwapChain);
             MenuOverlayBase::Dx11Ready();
@@ -616,6 +617,9 @@ void MenuOverlayDx::Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
 
             g_pd3dCommandQueue = cq;
             g_pd3dDeviceParam = device12;
+
+            g_pd3dCommandQueue->AddRef();
+            g_pd3dDeviceParam->AddRef();
 
             MenuOverlayBase::Dx12Ready();
             _isInited = true;
