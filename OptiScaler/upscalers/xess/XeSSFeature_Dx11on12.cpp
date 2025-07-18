@@ -12,7 +12,9 @@ XeSSFeatureDx11on12::XeSSFeatureDx11on12(unsigned int InHandleId, NVSDK_NGX_Para
     : IFeature_Dx11wDx12(InHandleId, InParameters), IFeature_Dx11(InHandleId, InParameters),
       IFeature(InHandleId, InParameters), XeSSFeature(InHandleId, InParameters)
 {
+    State::Instance().DisableChecks(77, "d3d12.dll");
     _moduleLoaded = XeSSProxy::InitXeSS() && XeSSProxy::D3D12CreateContext() != nullptr;
+    State::Instance().EnableChecks(77);
 }
 
 bool XeSSFeatureDx11on12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext,
@@ -78,7 +80,7 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
 
         _baseInit = true;
 
-        if (Dx12Device == nullptr)
+        if (State::Instance().currentD3D12Device == nullptr)
         {
             LOG_ERROR("Dx12on11Device is null!");
             return false;
@@ -86,7 +88,7 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
 
         LOG_DEBUG("calling InitXeSS");
 
-        if (!InitXeSS(Dx12Device, InParameters))
+        if (!InitXeSS(State::Instance().currentD3D12Device, InParameters))
         {
             LOG_ERROR("InitXeSS fail!");
             return false;
@@ -104,9 +106,10 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
             std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         }
 
-        OutputScaler = std::make_unique<OS_Dx12>("Output Scaling", Dx12Device, (TargetWidth() < DisplayWidth()));
-        RCAS = std::make_unique<RCAS_Dx12>("RCAS", Dx12Device);
-        Bias = std::make_unique<Bias_Dx12>("Bias", Dx12Device);
+        OutputScaler = std::make_unique<OS_Dx12>("Output Scaling", State::Instance().currentD3D12Device,
+                                                 (TargetWidth() < DisplayWidth()));
+        RCAS = std::make_unique<RCAS_Dx12>("RCAS", State::Instance().currentD3D12Device);
+        Bias = std::make_unique<Bias_Dx12>("Bias", State::Instance().currentD3D12Device);
     }
 
     if (!IsInited() || !_xessContext || !ModuleLoaded())
@@ -203,7 +206,8 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
 
         if (useSS)
         {
-            if (OutputScaler->CreateBufferResource(Dx12Device, dx11Out.Dx12Resource, TargetWidth(), TargetHeight(),
+            if (OutputScaler->CreateBufferResource(State::Instance().currentD3D12Device, dx11Out.Dx12Resource,
+                                                   TargetWidth(), TargetHeight(),
                                                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
             {
                 OutputScaler->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -222,7 +226,8 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
             (_sharpness > 0.0f || (Config::Instance()->MotionSharpnessEnabled.value_or(false) &&
                                    Config::Instance()->MotionSharpness.value_or(0.4) > 0.0f)) &&
             RCAS->IsInit() &&
-            RCAS->CreateBufferResource(Dx12Device, params.pOutputTexture, D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
+            RCAS->CreateBufferResource(State::Instance().currentD3D12Device, params.pOutputTexture,
+                                       D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
         {
             RCAS->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             params.pOutputTexture = RCAS->Buffer();
@@ -237,13 +242,13 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
         if (dx11Reactive.Dx12Resource != nullptr)
         {
             if (Config::Instance()->DlssReactiveMaskBias.value_or(0.0f) > 0.0f && Bias->IsInit() &&
-                Bias->CreateBufferResource(Dx12Device, dx11Reactive.Dx12Resource,
+                Bias->CreateBufferResource(State::Instance().currentD3D12Device, dx11Reactive.Dx12Resource,
                                            D3D12_RESOURCE_STATE_UNORDERED_ACCESS) &&
                 Bias->CanRender())
             {
                 Bias->SetBufferState(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-                if (Bias->Dispatch(Dx12Device, cmdList, dx11Reactive.Dx12Resource,
+                if (Bias->Dispatch(State::Instance().currentD3D12Device, cmdList, dx11Reactive.Dx12Resource,
                                    Config::Instance()->DlssReactiveMaskBias.value_or(0.0f), Bias->Buffer()))
                 {
                     Bias->SetBufferState(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -320,8 +325,8 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
 
             if (useSS)
             {
-                if (!RCAS->Dispatch(Dx12Device, cmdList, params.pOutputTexture, params.pVelocityTexture, rcasConstants,
-                                    OutputScaler->Buffer()))
+                if (!RCAS->Dispatch(State::Instance().currentD3D12Device, cmdList, params.pOutputTexture,
+                                    params.pVelocityTexture, rcasConstants, OutputScaler->Buffer()))
                 {
                     Config::Instance()->RcasEnabled = false;
                     break;
@@ -329,8 +334,8 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
             }
             else
             {
-                if (!RCAS->Dispatch(Dx12Device, cmdList, params.pOutputTexture, params.pVelocityTexture, rcasConstants,
-                                    dx11Out.Dx12Resource))
+                if (!RCAS->Dispatch(State::Instance().currentD3D12Device, cmdList, params.pOutputTexture,
+                                    params.pVelocityTexture, rcasConstants, dx11Out.Dx12Resource))
                 {
                     Config::Instance()->RcasEnabled = false;
                     break;
@@ -343,7 +348,8 @@ bool XeSSFeatureDx11on12::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_N
             LOG_DEBUG("scaling output...");
             OutputScaler->SetBufferState(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-            if (!OutputScaler->Dispatch(Dx12Device, cmdList, OutputScaler->Buffer(), dx11Out.Dx12Resource))
+            if (!OutputScaler->Dispatch(State::Instance().currentD3D12Device, cmdList, OutputScaler->Buffer(),
+                                        dx11Out.Dx12Resource))
             {
                 Config::Instance()->OutputScalingEnabled = false;
                 State::Instance().changeBackend[_handle->Id] = true;

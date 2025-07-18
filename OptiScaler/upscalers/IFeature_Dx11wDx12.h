@@ -40,7 +40,7 @@ class IFeature_Dx11wDx12 : public virtual IFeature_Dx11
     ID3D11DeviceContext4* Dx11DeviceContext = nullptr;
 
     // D3D11with12
-    ID3D12Device* Dx12Device = nullptr;
+    // ID3D12Device* Dx12Device = nullptr;
     ID3D12CommandQueue* Dx12CommandQueue = nullptr;
     ID3D12CommandAllocator* Dx12CommandAllocator[2] = { nullptr, nullptr };
     ID3D12GraphicsCommandList* Dx12CommandList[2] = { nullptr, nullptr };
