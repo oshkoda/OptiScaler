@@ -249,7 +249,8 @@ bool Hudfix_Dx12::CheckResource(ResourceInfo* resource)
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
         // Extended size check
-        if (!(resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
+        if (!(Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
+              resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
               resDesc.Width >= scDesc.BufferDesc.Width - 32 && resDesc.Width <= scDesc.BufferDesc.Width + 32))
         {
             return false;

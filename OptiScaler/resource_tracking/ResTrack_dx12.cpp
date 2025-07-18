@@ -138,7 +138,8 @@ bool ResTrack_Dx12::CheckResource(ID3D12Resource* resource)
     auto resDesc = resource->GetDesc();
     if (resDesc.Height != scDesc.BufferDesc.Height || resDesc.Width != scDesc.BufferDesc.Width)
     {
-        return resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
+        return Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
+               resDesc.Height >= scDesc.BufferDesc.Height - 32 && resDesc.Height <= scDesc.BufferDesc.Height + 32 &&
                resDesc.Width >= scDesc.BufferDesc.Width - 32 && resDesc.Width <= scDesc.BufferDesc.Width + 32;
     }
 

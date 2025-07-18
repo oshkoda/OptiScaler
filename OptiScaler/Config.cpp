@@ -99,6 +99,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGHudfixHalfSync.set_from_config(readBool("OptiFG", "HUDFixHalfSync"));
             FGHudfixFullSync.set_from_config(readBool("OptiFG", "HUDFixFullSync"));
             FGDontUseSwapchainBuffers.set_from_config(readBool("OptiFG", "HUDFixDontUseSwapchainBuffers"));
+            FGRelaxedResolutionCheck.set_from_config(readBool("OptiFG", "HUDFixRelaxedResolutionCheck"));
         }
 
         // Framerate
@@ -668,6 +669,8 @@ bool Config::SaveIni()
         ini.SetValue("OptiFG", "HUDFixFullSync", GetBoolValue(Instance()->FGHudfixFullSync.value_for_config()).c_str());
         ini.SetValue("OptiFG", "HUDFixDontUseSwapchainBuffers",
                      GetBoolValue(Instance()->FGDontUseSwapchainBuffers.value_for_config()).c_str());
+        ini.SetValue("OptiFG", "HUDFixRelaxedResolutionCheck",
+                     GetBoolValue(Instance()->FGRelaxedResolutionCheck.value_for_config()).c_str());
     }
 
     // Framerate

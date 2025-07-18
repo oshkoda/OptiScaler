@@ -2714,6 +2714,16 @@ bool MenuCommon::RenderMenu()
                                            "to prevent flickers and other issues\n\n"
                                            "Hudfix enable/disable will reset the block list!");
 
+                            auto rrc = Config::Instance()->FGRelaxedResolutionCheck.value_or_default();
+                            if (ImGui::Checkbox("Relaxed Resource Check", &rrc))
+                            {
+                                Config::Instance()->FGRelaxedResolutionCheck = rrc;
+                                LOG_DEBUG("Enabled set FGRelaxedResolutionCheck: {}", rrc);
+                            }
+                            ShowHelpMarker("Relax resolution checks for Hudless by 32 pixels \n"
+                                           "Helps games which use black borders for some \n"
+                                           "resolutions and screen ratios (e.g. Witcher 3)");
+
                             ImGui::BeginDisabled(State::Instance().FGresetCapturedResources);
                             ImGui::PushItemWidth(95.0f * Config::Instance()->MenuScale.value_or_default());
                             if (ImGui::Checkbox("FG Create List", &State::Instance().FGcaptureResources))

@@ -130,7 +130,8 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
                     ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
             }
         }
-        else if (desc.Height >= scDesc.BufferDesc.Height - 32 && desc.Height <= scDesc.BufferDesc.Height + 32 &&
+        else if (Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
+                 desc.Height >= scDesc.BufferDesc.Height - 32 && desc.Height <= scDesc.BufferDesc.Height + 32 &&
                  desc.Width >= scDesc.BufferDesc.Width - 32 && desc.Width <= scDesc.BufferDesc.Width + 32 &&
                  State::Instance().currentD3D12Device != nullptr)
         {
