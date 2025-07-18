@@ -31,7 +31,7 @@ If on AMD/Intel and Automated, **used DLSS inputs**?
 
 Also please mention in description which upscaler inputs are used (which upscaler you selected in game settings).
 
-#### Did you check the [Wiki](https://github.com/cdozdil/OptiScaler/wiki)?
+#### Did you check the [Wiki](https://github.com/optiscaler/OptiScaler/wiki)?
  - [ ] Yes
  - [ ] No
 
