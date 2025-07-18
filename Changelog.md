@@ -347,7 +347,7 @@ This build adds **experimental** Frame Generation support to `v0.6.8-pre4` for D
 * Fixed crashes during loading when game path contains unicode characters on unicode systems (thanks to **Rigel.**) 
 * Improved working mode checks and stability of mod (thanks to **Sildur** & **krispy**)
 * Fixed 16XX GPU spoofing for DLSS on Vulkan & Dx11 (thanks to **Merlinch** & **DARKERthanDA**)
-* Possible crash during resolution/quality change [issue #11](https://github.com/cdozdil/OptiScaler/issues/11) (thanks to **donizettilorenzo**)
+* Possible crash during resolution/quality change [issue #11](https://github.com/optiscaler/OptiScaler/issues/11) (thanks to **donizettilorenzo**)
 * Fixed/improved `RestoreComputeSignature` & `RestoreGraphicSignature` options (Needed for **Dragons Dogma 2**) (thanks to **CAPCOM**)
 * Prevented casting exceptions during ini loading (thanks to **CAPCOM**)
 * Fixed Mipmap Bias calculator Display Resolution value when OutputScaling is active (thanks to **Ridianoid**)
@@ -449,7 +449,7 @@ New:
 * Added an in-game menu scaling option
 
 Changed
-* Added new options for Dx11wDx12 creation & syncing. I have tried to explain it [here](https://github.com/cdozdil/OptiScaler/blob/master/Config.md#dx11withdx12-sync-settings). These settings are game & hw dependant so users need to tweak and find best performing configuration for their system. I have set safe and balanced values as default values.
+* Added new options for Dx11wDx12 creation & syncing. I have tried to explain it [here](https://github.com/optiscaler/OptiScaler/blob/master/Config.md#dx11withdx12-sync-settings). These settings are game & hw dependant so users need to tweak and find best performing configuration for their system. I have set safe and balanced values as default values.
 
 
 ## v0.4.2 (Release)
@@ -479,7 +479,7 @@ New:
 * Added auto disabling logic for DisplaySizeMotionVectos
 * Added option to limit Maximum Dynamic Resolution (DRS)
 * Added support for NVNGX logging API (for better integration with [DLSS Enabler](https://www.nexusmods.com/site/mods/757))
-* Added documentation for [settings](https://github.com/cdozdil/OmniScaler/blob/master/Config.md) and [issues](https://github.com/cdozdil/OmniScaler/blob/master/Config.md) 
+* Added documentation for [settings](https://github.com/optiscaler/OmniScaler/blob/master/Config.md) and [issues](https://github.com/optiscaler/OmniScaler/blob/master/Config.md) 
 
 Fixes:
 * CAS is now disabled by default for compatiblity reasons, can be enabled from in-game menu or from ini
