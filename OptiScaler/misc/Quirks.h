@@ -19,6 +19,7 @@ enum class GameQuirk : uint64_t
     EnableVulkanSpoofing,
     EnableVulkanExtensionSpoofing,
     DisableOptiXessPipelineCreation,
+    DontUseNTShared,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -177,6 +178,7 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("persistence-win64-shipping.exe", GameQuirk::ForceUnrealEngine),
     QUIRK_ENTRY("splitfiction.exe", GameQuirk::FastFeatureReset),
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
+    QUIRK_ENTRY("prey.exe", GameQuirk::DontUseNTShared, GameQuirk::DisableOptiXessPipelineCreation),
 
     // VULKAN
     // ------
@@ -245,6 +247,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Disable Use FSR Input Values");
     if (quirks & GameQuirk::DisableOptiXessPipelineCreation)
         spdlog::info("Quirk: Disable custom pipeline creation for XeSS");
+    if (quirks & GameQuirk::DontUseNTShared)
+        spdlog::info("Quirk: Don't use NTShared enabled");
 
     return;
 }

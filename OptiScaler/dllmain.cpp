@@ -970,6 +970,9 @@ static void CheckQuirks()
         Config::Instance()->BuildPipelines.set_volatile_value(false);
     }
 
+    if (quirks & GameQuirk::DontUseNTShared && !Config::Instance()->DontUseNTShared.has_value())
+        Config::Instance()->DontUseNTShared.set_volatile_value(true);
+
     State::Instance().gameQuirks = quirks;
 }
 
