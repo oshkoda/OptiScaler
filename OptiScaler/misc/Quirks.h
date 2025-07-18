@@ -126,20 +126,23 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("banishers-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // Tiny Tina's Wonderlands
-    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks,
-                GameQuirk::DisableDxgiSpoofing), // FSR2 only, no spoof needed
+    // FSR2 only, no spoof needed
+    QUIRK_ENTRY("wonderlands.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
 
     // Dead Island 2
-    QUIRK_ENTRY("deadisland-win64-shipping.exe", GameQuirk::DisableReactiveMasks,
-                GameQuirk::DisableDxgiSpoofing), // FSR2 only, no spoof needed
+    // FSR2 only, no spoof needed
+    QUIRK_ENTRY("deadisland-win64-shipping.exe", GameQuirk::DisableReactiveMasks, GameQuirk::DisableDxgiSpoofing),
+
+    // Rune Factory Guardians of Azuma
+    QUIRK_ENTRY("game-win64-shipping.exe", GameQuirk::DisableFSR2Inputs, GameQuirk::DisableFSR3Inputs),
 
     // STAR WARS Jedi: Survivor
     QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
 
     // The Callisto Protocol
+    // FSR2 only, no spoof needed
     QUIRK_ENTRY("thecallistoprotocol-win64-shipping.exe", GameQuirk::DisableUseFsrInputValues,
-                GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableReactiveMasks,
-                GameQuirk::ForceAutoExposure), // FSR2 only, no spoof needed
+                GameQuirk::DisableDxgiSpoofing, GameQuirk::DisableReactiveMasks, GameQuirk::ForceAutoExposure),
 
     // HITMAN World of Assassination
     // SL spoof enough to unlock everything DLSS
