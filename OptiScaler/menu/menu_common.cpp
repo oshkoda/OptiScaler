@@ -2054,6 +2054,17 @@ bool MenuCommon::RenderMenu()
                             MARK_ALL_BACKENDS_CHANGED();
                         }
                     }
+
+                    if (State::Instance().currentFeature->AccessToReactiveMask())
+                    {
+                        ImGui::BeginDisabled(Config::Instance()->DisableReactiveMask.value_or(false));
+
+                        auto useAsTransparency = Config::Instance()->FsrUseMaskForTransparency.value_or_default();
+                        if (ImGui::Checkbox("Use Reactive Mask as Transparency Mask", &useAsTransparency))
+                            Config::Instance()->FsrUseMaskForTransparency = useAsTransparency;
+
+                        ImGui::EndDisabled();
+                    }
                 }
 
                 if (currentFeature != nullptr && !currentFeature->IsFrozen())
@@ -2141,8 +2152,7 @@ bool MenuCommon::RenderMenu()
 
                     // FFX -----------------
                     if (currentBackend.rfind("fsr", 0) == 0 && State::Instance().currentFeature->Name() != "DLSSD" &&
-                        (currentBackend == "fsr31" || currentBackend == "fsr31_12" ||
-                         State::Instance().currentFeature->AccessToReactiveMask()))
+                        (currentBackend == "fsr31" || currentBackend == "fsr31_12"))
                     {
                         ImGui::SeparatorText("FFX Settings");
 
@@ -2284,18 +2294,6 @@ bool MenuCommon::RenderMenu()
                                                "Bottom left: Disocclusion mask\n"
                                                "Bottom middle: Reactiveness\n"
                                                "Bottom right: Detail Protection Takedown");
-                            }
-
-                            if (State::Instance().currentFeature->AccessToReactiveMask())
-                            {
-                                ImGui::BeginDisabled(Config::Instance()->DisableReactiveMask.value_or(false));
-
-                                auto useAsTransparency =
-                                    Config::Instance()->FsrUseMaskForTransparency.value_or_default();
-                                if (ImGui::Checkbox("Use Reactive Mask as Transparency Mask", &useAsTransparency))
-                                    Config::Instance()->FsrUseMaskForTransparency = useAsTransparency;
-
-                                ImGui::EndDisabled();
                             }
 
                             ImGui::Spacing();
