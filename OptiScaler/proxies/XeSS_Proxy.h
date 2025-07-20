@@ -278,37 +278,42 @@ class XeSSProxy
 
         HMODULE dx11Module = nullptr;
 
-        dx11Module = GetModuleHandle(L"libxess_dx11.dll");
+        do
+        {
+            dx11Module = GetModuleHandle(L"libxess_dx11.dll");
+            if (dx11Module != nullptr)
+            {
+                break;
+            }
+
+            auto dllPath = Util::DllPath();
+
+            std::wstring libraryName;
+            libraryName = L"libxess_dx11.dll";
+
+            // we would like to prioritize file pointed at ini
+            if (Config::Instance()->XeSSLibrary.has_value())
+            {
+                std::filesystem::path cfgPath(Config::Instance()->XeSSLibrary.value().c_str());
+                LOG_INFO("Trying to load libxess.dll from ini path: {}", cfgPath.string());
+
+                auto dx11Path = cfgPath.parent_path() / libraryName;
+                dx11Module = KernelBaseProxy::LoadLibraryExW_()(dx11Path.c_str(), NULL, 0);
+            }
+
+            if (dx11Module == nullptr)
+            {
+                std::filesystem::path libXessDx11Path = dllPath.parent_path() / libraryName;
+                LOG_INFO("Trying to load libxess.dll from dll path: {}", libXessDx11Path.string());
+                dx11Module = KernelBaseProxy::LoadLibraryExW_()(libXessDx11Path.c_str(), NULL, 0);
+            }
+        } while (false);
+
         if (dx11Module != nullptr)
         {
             _dlldx11 = dx11Module;
-            return true;
-        }
-
-        auto dllPath = Util::DllPath();
-
-        std::wstring libraryName;
-        libraryName = L"libxess_dx11.dll";
-
-        // we would like to prioritize file pointed at ini
-        if (Config::Instance()->XeSSLibrary.has_value())
-        {
-            std::filesystem::path cfgPath(Config::Instance()->XeSSLibrary.value().c_str());
-            LOG_INFO("Trying to load libxess.dll from ini path: {}", cfgPath.string());
-
-            auto dx11Path = cfgPath.parent_path() / libraryName;
-            dx11Module = KernelBaseProxy::LoadLibraryExW_()(dx11Path.c_str(), NULL, 0);
-        }
-
-        if (dx11Module == nullptr)
-        {
-            std::filesystem::path libXessDx11Path = dllPath.parent_path() / libraryName;
-            LOG_INFO("Trying to load libxess.dll from dll path: {}", libXessDx11Path.string());
-            dx11Module = KernelBaseProxy::LoadLibraryExW_()(libXessDx11Path.c_str(), NULL, 0);
-        }
-
-        if (dx11Module != nullptr)
             return HookXeSSDx11(dx11Module);
+        }
 
         return false;
     }
@@ -866,7 +871,7 @@ class XeSSProxy
 
     static xess_version_t VersionDx11()
     {
-        if (_xessVersionDx11.major == 0)
+        if (_xessVersionDx11.major == 0 && _xessGetVersionDx11 != nullptr)
             _xessGetVersionDx11(&_xessVersionDx11);
 
         // If dll version cant be read disable 1.3.x specific stuff
