@@ -973,6 +973,12 @@ static void CheckQuirks()
     if (quirks & GameQuirk::DontUseNTShared && !Config::Instance()->DontUseNTShared.has_value())
         Config::Instance()->DontUseNTShared.set_volatile_value(true);
 
+    if (quirks & GameQuirk::DontUseUnrealBarriers && !Config::Instance()->ColorResourceBarrier.has_value())
+        Config::Instance()->ColorResourceBarrier.set_volatile_value(128);
+
+    if (quirks & GameQuirk::DontUseUnrealBarriers && !Config::Instance()->MVResourceBarrier.has_value())
+        Config::Instance()->MVResourceBarrier.set_volatile_value(128);
+
     State::Instance().gameQuirks = quirks;
 }
 

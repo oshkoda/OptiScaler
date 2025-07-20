@@ -20,6 +20,7 @@ enum class GameQuirk : uint64_t
     EnableVulkanExtensionSpoofing,
     DisableOptiXessPipelineCreation,
     DontUseNTShared,
+    DontUseUnrealBarriers,
 
     // Quirks that are applied deeper in code
     CyberpunkHudlessStateOverride,
@@ -159,7 +160,7 @@ static const QuirkEntry quirkTable[] = {
 
     // Returnal
     // no spoof needed for DLSS inputs, but no DLSSG and Reflex
-    QUIRK_ENTRY("returnal-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("returnal-win64-shipping.exe", GameQuirk::DisableDxgiSpoofing, GameQuirk::DontUseUnrealBarriers),
 
     // UNCHARTED: Legacy of Thieves Collection
     // no spoof needed for DLSS inputs
@@ -249,6 +250,8 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Disable custom pipeline creation for XeSS");
     if (quirks & GameQuirk::DontUseNTShared)
         spdlog::info("Quirk: Don't use NTShared enabled");
+    if (quirks & GameQuirk::DontUseUnrealBarriers)
+        spdlog::info("Quirk: Don't use resource barrier fix for Unreal Engine games");
 
     return;
 }
