@@ -58,6 +58,8 @@ void FSRFG_Dx12::GetDispatchCommandList()
 
 UINT64 FSRFG_Dx12::UpscaleStart()
 {
+    LOG_FUNC();
+
     _frameCount++;
 
     // if (!State::Instance().isShuttingDown && IsActive())

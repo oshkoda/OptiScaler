@@ -1540,31 +1540,35 @@ void ResTrack_Dx12::hkDrawIndexedInstanced(ID3D12GraphicsCommandList* This, UINT
 
 void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12GraphicsCommandList* pCommandList)
 {
-    o_ExecuteBundle(This, pCommandList);
-
     IFGFeature_Dx12* fg = State::Instance().currentFG;
 
     if (fg->IsActive() && fg->TargetFrame() < fg->FrameCount())
     {
         auto index = fg->FrameCount() % BUFFER_COUNT;
 
+        // LOG_TRACE("index: {}, bundle cmdList: {:X}, cmdList: {:X}", index, (size_t) This, (size_t) pCommandList);
+
         if (pCommandList == _commandList[index])
         {
-            LOG_DEBUG("Hudless cmdlist");
+            LOG_DEBUG("Hudless cmdlist[{}]: {:X}", index, (size_t) This);
             _commandList[index] = This;
         }
         else if (pCommandList == _upscalerCommandList[index])
         {
-            LOG_DEBUG("Upscaler cmdlist");
+            LOG_DEBUG("Upscaler cmdlist[{}]: {:X}", index, (size_t) This);
             _upscalerCommandList[index] = This;
         }
     }
+
+    o_ExecuteBundle(This, pCommandList);
 }
 
 void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 {
     auto fg = State::Instance().currentFG;
     auto index = fg != nullptr ? fg->FrameCount() % BUFFER_COUNT : -1;
+
+    // LOG_TRACE("index: {}, cmdList: {:X}", index, (size_t) This);
 
     if (State::Instance().activeFgType == OptiFG && fg != nullptr &&
         (_upscalerCommandList[index] != nullptr || _commandList[index] != nullptr))
@@ -1905,8 +1909,8 @@ void ResTrack_Dx12::SetUpscalerCmdList(ID3D12GraphicsCommandList* cmdList)
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        LOG_DEBUG("cmdList: {:X}", (size_t) cmdList);
         auto index = fg->FrameCount() % BUFFER_COUNT;
+        LOG_DEBUG("cmdList[{}]: {:X}", index, (size_t) cmdList);
         _upscalerCommandList[index] = cmdList;
     }
 }
@@ -1916,8 +1920,8 @@ void ResTrack_Dx12::SetHudlessCmdList(ID3D12GraphicsCommandList* cmdList)
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        LOG_DEBUG("cmdList: {:X}", (size_t) cmdList);
         auto index = fg->FrameCount() % BUFFER_COUNT;
+        LOG_DEBUG("cmdList[{}]: {:X}", index, (size_t) cmdList);
         _commandList[index] = cmdList;
     }
 }
