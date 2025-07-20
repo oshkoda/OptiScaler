@@ -1,4 +1,4 @@
-#include "menu_common.h"
+﻿#include "menu_common.h"
 
 #include "font/Hack_Compressed.h"
 
@@ -3649,6 +3649,11 @@ bool MenuCommon::RenderMenu()
                     if (ImGui::BeginTable("init", 2, ImGuiTableFlags_SizingStretchProp))
                     {
                         ImGui::TableNextColumn();
+
+                        // AutoExposure is always enabled for XeSS with native Dx11
+                        bool autoExposureDisabled = State::Instance().api == API::DX11 && currentBackend == "xess";
+                        ImGui::BeginDisabled(autoExposureDisabled);
+
                         if (bool autoExposure = currentFeature->AutoExposure();
                             ImGui::Checkbox("Auto Exposure", &autoExposure))
                         {
@@ -3658,6 +3663,8 @@ bool MenuCommon::RenderMenu()
                         ShowResetButton(&Config::Instance()->AutoExposure, "R");
                         ShowHelpMarker("Some Unreal Engine games need this\n"
                                        "Might fix colors, especially in dark areas");
+
+                        ImGui::EndDisabled();
 
                         ImGui::TableNextColumn();
                         auto accessToReactiveMask = State::Instance().currentFeature->AccessToReactiveMask();

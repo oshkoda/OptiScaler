@@ -95,10 +95,14 @@ bool XeSSFeature_Dx11::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InConte
     if (DepthInverted())
         xessParams.initFlags |= XESS_INIT_FLAG_INVERTED_DEPTH;
 
-    if (AutoExposure())
-        xessParams.initFlags |= XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE;
-    else
-        xessParams.initFlags |= XESS_INIT_FLAG_EXPOSURE_SCALE_TEXTURE;
+    // Autoexposure is always enabled for XeSS Dx11
+    LOG_INFO("AutoExposure is always enabled for XeSS Dx11");
+    xessParams.initFlags |= XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE;
+
+    // if (AutoExposure())
+    //     xessParams.initFlags |= XESS_INIT_FLAG_ENABLE_AUTOEXPOSURE;
+    // else
+    //     xessParams.initFlags |= XESS_INIT_FLAG_EXPOSURE_SCALE_TEXTURE;
 
     if (!IsHdr())
         xessParams.initFlags |= XESS_INIT_FLAG_LDR_INPUT_COLOR;
@@ -400,29 +404,29 @@ bool XeSSFeature_Dx11::Evaluate(ID3D11DeviceContext* DeviceContext, NVSDK_NGX_Pa
         }
     }
 
-    if (!AutoExposure())
-    {
-        ID3D11Resource* paramExp = nullptr;
-        if (InParameters->Get(NVSDK_NGX_Parameter_ExposureTexture, &paramExp) != NVSDK_NGX_Result_Success)
-            InParameters->Get(NVSDK_NGX_Parameter_ExposureTexture, (void**) &paramExp);
+    // if (!AutoExposure())
+    //{
+    //     ID3D11Resource* paramExp = nullptr;
+    //     if (InParameters->Get(NVSDK_NGX_Parameter_ExposureTexture, &paramExp) != NVSDK_NGX_Result_Success)
+    //         InParameters->Get(NVSDK_NGX_Parameter_ExposureTexture, (void**) &paramExp);
 
-        if (paramExp)
-        {
-            LOG_DEBUG("ExposureTexture exist..");
-            params.pExposureScaleTexture = paramExp;
-        }
-        else
-        {
-            LOG_WARN("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
-            State::Instance().AutoExposure = true;
-            State::Instance().changeBackend[_handle->Id] = true;
-            return true;
-        }
-    }
-    else
-    {
-        LOG_DEBUG("AutoExposure enabled!");
-    }
+    //    if (paramExp)
+    //    {
+    //        LOG_DEBUG("ExposureTexture exist..");
+    //        params.pExposureScaleTexture = paramExp;
+    //    }
+    //    else
+    //    {
+    //        LOG_WARN("AutoExposure disabled but ExposureTexture is not exist, it may cause problems!!");
+    //        State::Instance().AutoExposure = true;
+    //        State::Instance().changeBackend[_handle->Id] = true;
+    //        return true;
+    //    }
+    //}
+    // else
+    //{
+    //    LOG_DEBUG("AutoExposure is always enabled for XeSS Dx11!");
+    //}
 
     if (!Config::Instance()->DisableReactiveMask.value_or(true))
     {
@@ -595,8 +599,8 @@ XeSSFeature_Dx11::XeSSFeature_Dx11(unsigned int handleId, NVSDK_NGX_Parameter* I
 {
     _initParameters = SetInitParameters(InParameters);
 
-    if (XeSSProxy::ModuleDx11() == nullptr && XeSSProxy::InitXeSSDx11())
-        XeSSProxy::HookXeSSDx11();
+    if (XeSSProxy::ModuleDx11() == nullptr)
+        XeSSProxy::InitXeSSDx11();
 
     _moduleLoaded = XeSSProxy::ModuleDx11() != nullptr && XeSSProxy::D3D11CreateContext() != nullptr;
 }
