@@ -394,6 +394,17 @@ HRESULT IFeature_Dx11wDx12::CreateDx12Device(D3D_FEATURE_LEVEL InFeatureLevel)
             State::Instance().skipSpoofing = false;
             return result;
         }
+
+        if (hardwareAdapter != nullptr)
+        {
+            DXGI_ADAPTER_DESC desc {};
+            if (hardwareAdapter->GetDesc(&desc) == S_OK)
+            {
+                auto adapterDesc = wstring_to_string(desc.Description);
+                LOG_INFO("D3D12Device created with adapter: {}", adapterDesc);
+                State::Instance().DeviceAdapterNames[State::Instance().currentD3D12Device] = adapterDesc;
+            }
+        }
     }
 
     if (Dx12CommandQueue == nullptr)

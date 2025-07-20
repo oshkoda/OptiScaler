@@ -1965,6 +1965,9 @@ bool MenuCommon::RenderMenu()
                         if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D11Device))
                             ImGui::Text(
                                 State::Instance().DeviceAdapterNames[State::Instance().currentD3D11Device].c_str());
+                        else if (State::Instance().DeviceAdapterNames.contains(State::Instance().currentD3D12Device))
+                            ImGui::Text(
+                                State::Instance().DeviceAdapterNames[State::Instance().currentD3D12Device].c_str());
 
                         ImGui::Text("D3D11 %s| %s %d.%d.%d", State::Instance().isRunningOnDXVK ? "(DXVK) " : "",
                                     State::Instance().currentFeature->Name().c_str(),

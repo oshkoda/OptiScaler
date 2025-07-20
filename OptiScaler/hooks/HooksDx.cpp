@@ -364,14 +364,63 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
 
         _dx11Device = true;
         State::Instance().swapchainApi = DX11;
+        State::Instance().currentD3D11Device == device;
+
+        if (!State::Instance().DeviceAdapterNames.contains(device))
+        {
+            IDXGIDevice* dxgiDevice = nullptr;
+            auto qResult = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+
+            if (qResult == S_OK)
+            {
+                IDXGIAdapter* dxgiAdapter = nullptr;
+                qResult = dxgiDevice->GetAdapter(&dxgiAdapter);
+
+                if (qResult == S_OK)
+                {
+                    State::Instance().skipSpoofing = true;
+
+                    std::wstring szName;
+                    DXGI_ADAPTER_DESC desc {};
+
+                    if (dxgiAdapter->GetDesc(&desc) == S_OK)
+                    {
+                        szName = desc.Description;
+                        auto adapterDesc = wstring_to_string(szName);
+                        LOG_INFO("Adapter Desc: {}", adapterDesc);
+                        State::Instance().DeviceAdapterNames[device] = adapterDesc;
+                    }
+                    else
+                    {
+                        LOG_ERROR("GetDesc: {:X}", (UINT) qResult);
+                    }
+
+                    State::Instance().skipSpoofing = false;
+                }
+                else
+                {
+                    LOG_ERROR("GetAdapter: {:X}", (UINT) qResult);
+                }
+
+                if (dxgiAdapter != nullptr)
+                    dxgiAdapter->Release();
+            }
+            else
+            {
+                LOG_ERROR("QueryInterface: {:X}", (UINT) qResult);
+            }
+
+            if (dxgiDevice != nullptr)
+                dxgiDevice->Release();
+        }
     }
     else if (pDevice->QueryInterface(IID_PPV_ARGS(&cq)) == S_OK)
     {
         if (!_dx12Device)
             LOG_DEBUG("D3D12CommandQueue captured");
 
-        State::Instance().currentCommandQueue = cq;
         State::Instance().swapchainApi = DX12;
+        State::Instance().currentCommandQueue = cq;
 
         if (cq->GetDevice(IID_PPV_ARGS(&device12)) == S_OK)
         {
@@ -379,6 +428,7 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
                 LOG_DEBUG("D3D12Device captured");
 
             _dx12Device = true;
+            State::Instance().currentD3D12Device = device12;
         }
     }
 
