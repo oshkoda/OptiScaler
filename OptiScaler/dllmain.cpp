@@ -41,6 +41,7 @@ static std::vector<HMODULE> _asiHandles;
 
 typedef const char*(CDECL* PFN_wine_get_version)(void);
 typedef void (*PFN_InitializeASI)(void);
+typedef bool (*PFN_PatchResult)(void);
 
 static inline void* ManualGetProcAddress(HMODULE hModule, const char* functionName)
 {
@@ -195,9 +196,24 @@ void LoadAsiPlugins()
                 _asiHandles.push_back(hMod);
 
                 auto init = (PFN_InitializeASI) KernelBaseProxy::GetProcAddress_()(hMod, "InitializeASI");
+                auto patchResult = (PFN_PatchResult) KernelBaseProxy::GetProcAddress_()(hMod, "PatchResult");
 
                 if (init != nullptr)
                     init();
+
+                if (!State::Instance().isRunningOnNvidia && !Config::Instance()->DxgiSpoofing.has_value() &&
+                    patchResult != nullptr)
+                {
+                    auto pr = patchResult();
+
+                    if (pr)
+                    {
+                        LOG_INFO("Game patching is successful, disabling spoofing");
+                        Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+                        Config::Instance()->VulkanSpoofing.set_volatile_value(false);
+                        Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(false);
+                    }
+                }
             }
             else
             {
