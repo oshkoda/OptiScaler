@@ -201,17 +201,22 @@ void LoadAsiPlugins()
                 if (init != nullptr)
                     init();
 
-                if (!State::Instance().isRunningOnNvidia && !Config::Instance()->DxgiSpoofing.has_value() &&
-                    patchResult != nullptr)
+                if (!State::Instance().isRunningOnNvidia && patchResult != nullptr)
                 {
                     auto pr = patchResult();
 
                     if (pr)
                     {
                         LOG_INFO("Game patching is successful, disabling spoofing");
-                        Config::Instance()->DxgiSpoofing.set_volatile_value(false);
-                        Config::Instance()->VulkanSpoofing.set_volatile_value(false);
-                        Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(false);
+
+                        if (!Config::Instance()->DxgiSpoofing.has_value())
+                            Config::Instance()->DxgiSpoofing.set_volatile_value(false);
+
+                        if (!Config::Instance()->VulkanSpoofing.has_value())
+                            Config::Instance()->VulkanSpoofing.set_volatile_value(false);
+
+                        if (!Config::Instance()->VulkanExtensionSpoofing.has_value())
+                            Config::Instance()->VulkanExtensionSpoofing.set_volatile_value(false);
                     }
                 }
             }
