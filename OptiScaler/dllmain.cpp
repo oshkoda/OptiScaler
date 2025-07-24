@@ -29,6 +29,7 @@
 
 #include <hooks/HooksDx.h>
 #include <hooks/HooksVk.h>
+#include <hooks/Ntdll_Hooks.h>
 #include <hooks/Kernel_Hooks.h>
 
 #include <nvapi/NvApiHooks.h>
@@ -235,6 +236,8 @@ static void CheckWorkingMode()
 
     if (Config::Instance()->EarlyHooking.value_or_default())
     {
+
+        NtdllHooks::Hook();
         KernelHooks::Hook();
         KernelHooks::HookBase();
     }
@@ -883,7 +886,10 @@ static void CheckWorkingMode()
 
             // Hook kernel32 methods
             if (!Config::Instance()->EarlyHooking.value_or_default())
+            {
+                NtdllHooks::Hook();
                 KernelHooks::Hook();
+            }
 
             // For Agility SDK Upgrade
             if (Config::Instance()->FsrAgilitySDKUpgrade.value_or_default())
