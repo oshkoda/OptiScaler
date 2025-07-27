@@ -1863,7 +1863,7 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
         DetourTransactionCommit();
     }
 
-    HookToQueue(device);
+    // HookToQueue(device);
     HookCommandList(device);
     HookResource(device);
 }
