@@ -451,16 +451,27 @@ bool Config::Reload(std::filesystem::path iniPath)
         // Plugins
         {
             std::filesystem::path path;
+            auto setting = readString("Plugins", "Path", true);
 
-            if (auto setting = readString("Plugins", "Path", true); setting.has_value())
+            if (setting.has_value())
                 path = std::filesystem::path(setting.value());
             else
                 path = std::filesystem::path(PluginPath.value_or_default());
 
-            if (path.has_root_path())
-                PluginPath.set_from_config(path.wstring());
+            if (setting.has_value())
+            {
+                if (path.has_root_path())
+                    PluginPath.set_from_config(path.wstring());
+                else
+                    PluginPath.set_from_config((Util::DllPath().parent_path() / path).wstring());
+            }
             else
-                PluginPath.set_from_config((Util::DllPath().parent_path() / path).wstring());
+            {
+                if (path.has_root_path())
+                    PluginPath.set_volatile_value(path.wstring());
+                else
+                    PluginPath.set_volatile_value((Util::DllPath().parent_path() / path).wstring());
+            }
 
             LoadSpecialK.set_from_config(readBool("Plugins", "LoadSpecialK"));
             LoadReShade.set_from_config(readBool("Plugins", "LoadReShade"));
