@@ -70,25 +70,26 @@ class KernelHooks
         LOG_TRACE("{}", lcaseLibName);
 
         // If Opti is not loading as nvngx.dll
-        if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
-        {
-            // exe path
-            auto exePath = Util::ExePath().parent_path().wstring();
+        // if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
+        //{
+        //    // exe path
+        //    auto exePath = Util::ExePath().parent_path().wstring();
 
-            for (size_t i = 0; i < exePath.size(); i++)
-                exePath[i] = std::tolower(exePath[i]);
+        //    for (size_t i = 0; i < exePath.size(); i++)
+        //        exePath[i] = std::tolower(exePath[i]);
 
-            auto pos = lcaseLibName.rfind(wstring_to_string(exePath));
+        //    auto pos = lcaseLibName.rfind(wstring_to_string(exePath));
 
-            if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllName(&lcaseLibName, &nvngxNames) &&
-                (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
-            {
-                LOG_INFO("nvngx call: {0}, returning this dll!", lcaseLibName);
-                // loadCount++;
+        //    if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllName(&lcaseLibName, &nvngxNames) &&
+        //        (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
+        //    {
+        //        // LOG_INFO("nvngx call: {0}, returning this dll!", lcaseLibName);
+        //        //  loadCount++;
 
-                return dllModule;
-            }
-        }
+        //        return nullptr;
+        //        // return dllModule;
+        //    }
+        //}
 
         if (!State::Instance().isWorkingAsNvngx &&
             (!State::Instance().isDxgiMode || !State::Instance().skipDxgiLoadChecks) &&
@@ -487,27 +488,29 @@ class KernelHooks
         LOG_TRACE("{}", lcaseLibNameA);
 
         // If Opti is not loading as nvngx.dll
-        if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
-        {
-            // exe path
-            auto exePath = Util::ExePath().parent_path().wstring();
+        // if (!State::Instance().enablerAvailable && !State::Instance().isWorkingAsNvngx)
+        //{
+        //    // exe path
+        //    auto exePath = Util::ExePath().parent_path().wstring();
 
-            for (size_t i = 0; i < exePath.size(); i++)
-                exePath[i] = std::tolower(exePath[i]);
+        //    for (size_t i = 0; i < exePath.size(); i++)
+        //        exePath[i] = std::tolower(exePath[i]);
 
-            auto pos = lcaseLibName.rfind(exePath);
+        //    auto pos = lcaseLibName.rfind(exePath);
 
-            if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllNameW(&lcaseLibName, &nvngxNamesW) &&
-                (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
-            {
-                LOG_INFO("nvngx call: {0}, returning this dll!", lcaseLibNameA);
+        //    if (Config::Instance()->EnableDlssInputs.value_or_default() && CheckDllNameW(&lcaseLibName, &nvngxNamesW)
+        //    &&
+        //        (!Config::Instance()->HookOriginalNvngxOnly.value_or_default() || pos == std::string::npos))
+        //    {
+        //        // LOG_INFO("nvngx call: {0}, returning this dll!", lcaseLibNameA);
 
-                // if (!dontCount)
-                // loadCount++;
+        //        // if (!dontCount)
+        //        // loadCount++;
 
-                return dllModule;
-            }
-        }
+        //        return nullptr;
+        //        // return dllModule;
+        //    }
+        //}
 
         if (!State::Instance().isWorkingAsNvngx &&
             (!State::Instance().isDxgiMode || !State::Instance().skipDxgiLoadChecks) &&
