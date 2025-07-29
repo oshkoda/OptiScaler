@@ -1757,8 +1757,8 @@ void ResTrack_Dx12::HookCommandList(ID3D12Device* InDevice)
                 if (o_Dispatch != nullptr)
                     DetourAttach(&(PVOID&) o_Dispatch, hkDispatch);
 
-                if (o_ExecuteBundle != nullptr)
-                    DetourAttach(&(PVOID&) o_ExecuteBundle, hkExecuteBundle);
+                // if (o_ExecuteBundle != nullptr)
+                //     DetourAttach(&(PVOID&) o_ExecuteBundle, hkExecuteBundle);
 
                 if (o_Close != nullptr)
                     DetourAttach(&(PVOID&) o_Close, hkClose);
