@@ -71,6 +71,9 @@ bool Config::Reload(std::filesystem::path iniPath)
         {
             FGEnabled.set_from_config(readBool("OptiFG", "Enabled"));
             FGDebugView.set_from_config(readBool("OptiFG", "DebugView"));
+            FGDebugTearLines.set_from_config(readBool("OptiFG", "DebugTearLines"));
+            FGDebugResetLines.set_from_config(readBool("OptiFG", "DebugResetLines"));
+            FGDebugPacingLines.set_from_config(readBool("OptiFG", "DebugPacingLines"));
             FGAsync.set_from_config(readBool("OptiFG", "AllowAsync"));
             FGHUDFix.set_from_config(readBool("OptiFG", "HUDFix"));
             FGHUDLimit.set_from_config(readInt("OptiFG", "HUDLimit"));
@@ -642,6 +645,11 @@ bool Config::SaveIni()
     {
         ini.SetValue("OptiFG", "Enabled", GetBoolValue(Instance()->FGEnabled.value_for_config()).c_str());
         ini.SetValue("OptiFG", "DebugView", GetBoolValue(Instance()->FGDebugView.value_for_config()).c_str());
+        ini.SetValue("OptiFG", "DebugTearLines", GetBoolValue(Instance()->FGDebugTearLines.value_for_config()).c_str());
+        ini.SetValue("OptiFG", "DebugResetLines",
+                     GetBoolValue(Instance()->FGDebugResetLines.value_for_config()).c_str());
+        ini.SetValue("OptiFG", "DebugPacingLines",
+                     GetBoolValue(Instance()->FGDebugPacingLines.value_for_config()).c_str());
         ini.SetValue("OptiFG", "AllowAsync", GetBoolValue(Instance()->FGAsync.value_for_config()).c_str());
         ini.SetValue("OptiFG", "HUDFix", GetBoolValue(Instance()->FGHUDFix.value_for_config()).c_str());
         ini.SetValue("OptiFG", "HUDLimit", GetIntValue(Instance()->FGHUDLimit.value_for_config()).c_str());

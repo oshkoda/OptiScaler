@@ -193,6 +193,15 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* ou
     if (Config::Instance()->FGDebugView.value_or_default())
         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
 
+    if (Config::Instance()->FGDebugTearLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES;
+
+    if (Config::Instance()->FGDebugResetLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS;
+
+    if (Config::Instance()->FGDebugPacingLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES;
+
     m_FrameGenerationConfig.allowAsyncWorkloads = Config::Instance()->FGAsync.value_or_default();
 
     // use swapchain buffer info
@@ -355,6 +364,15 @@ bool FSRFG_Dx12::DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHud
 
     if (Config::Instance()->FGDebugView.value_or_default())
         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
+
+    if (Config::Instance()->FGDebugTearLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES;
+
+    if (Config::Instance()->FGDebugResetLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS;
+
+    if (Config::Instance()->FGDebugPacingLines.value_or_default())
+        m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES;
 
     m_FrameGenerationConfig.allowAsyncWorkloads = Config::Instance()->FGAsync.value_or_default();
 

@@ -352,6 +352,9 @@ class Config
     // OptiFG
     CustomOptional<bool> FGEnabled { false };
     CustomOptional<bool> FGDebugView { false };
+    CustomOptional<bool> FGDebugResetLines { false };
+    CustomOptional<bool> FGDebugTearLines { false };
+    CustomOptional<bool> FGDebugPacingLines { false };
     CustomOptional<bool> FGAsync { false };
     CustomOptional<bool> FGUseMutexForSwapchain { true };
     CustomOptional<bool> FGMakeMVCopy { true };
