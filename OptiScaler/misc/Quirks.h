@@ -142,6 +142,10 @@ static const QuirkEntry quirkTable[] = {
     // STAR WARS Jedi: Survivor
     QUIRK_ENTRY("jedisurvivor.exe", GameQuirk::ForceAutoExposure),
 
+    // Death Stranding and Directors Cut
+    // no spoof needed for DLSS inputs
+    QUIRK_ENTRY("ds.exe", GameQuirk::DisableDxgiSpoofing),
+
     // The Callisto Protocol
     // FSR2 only, no spoof needed
     QUIRK_ENTRY("thecallistoprotocol-win64-shipping.exe", GameQuirk::DisableUseFsrInputValues,
