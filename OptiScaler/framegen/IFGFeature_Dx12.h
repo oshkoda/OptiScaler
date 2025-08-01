@@ -53,9 +53,8 @@ class IFGFeature_Dx12 : public virtual IFGFeature
                                   IDXGISwapChain1** swapChain) = 0;
     virtual bool ReleaseSwapchain(HWND hwnd) = 0;
 
-    virtual void CreateContext(ID3D12Device* device, IFeature* upscalerContext) = 0;
+    virtual void CreateContext(ID3D12Device* device, int featureFlags, uint32_t width, uint32_t height) = 0;
 
-    // virtual bool Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime) = 0;
     virtual bool Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime) = 0;
 
     virtual void* FrameGenerationContext() = 0;
@@ -71,9 +70,8 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     void SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless, D3D12_RESOURCE_STATES state,
                     bool makeCopy = false);
 
-    ID3D12CommandList* GetCommandList();
     bool NoHudless();
-    ID3D12CommandList* ExecuteHudlessCmdList(ID3D12CommandQueue* queue = nullptr);
+    ID3D12CommandList* GetCommandList();
 
     IFGFeature_Dx12() = default;
 

@@ -36,8 +36,6 @@ class IFGFeature
     virtual feature_version Version() = 0;
     virtual const char* Name() = 0;
 
-    virtual UINT64 UpscaleStart() = 0;
-    virtual void UpscaleEnd() = 0;
     virtual void Present() = 0;
 
     virtual void SetUpscaleInputsReady() = 0;
@@ -48,9 +46,10 @@ class IFGFeature
     virtual bool HudlessReady() = 0;
     virtual bool ReadyForExecute() = 0;
 
-    virtual void FgDone() = 0;
     virtual void ReleaseObjects() = 0;
     virtual void StopAndDestroyContext(bool destroy, bool shutDown, bool useMutex) = 0;
+
+    UINT64 StartNewFrame();
 
     bool IsActive();
     int GetIndex();

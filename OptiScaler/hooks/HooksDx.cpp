@@ -576,9 +576,6 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
     else
         LOG_ERROR("4 {:X}", (UINT) presentResult);
 
-    if (_releaseMutexTargetFrame != 0 && _frameCounter >= _releaseMutexTargetFrame)
-        ResTrack_Dx12::PresentDone();
-
     // If Half of Full sync is active or was active (_releaseMutexTargetFrame != 0)
     if (_releaseMutexTargetFrame != 0 && Config::Instance()->FGUseMutexForSwapchain.value_or_default() &&
         _frameCounter >= _releaseMutexTargetFrame && fg != nullptr)
@@ -591,9 +588,6 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         }
 
         _releaseMutexTargetFrame = 0;
-
-        // Signal for pause
-        fg->FgDone();
     }
 
     LOG_DEBUG("Done");

@@ -123,7 +123,7 @@ void IFGFeature_Dx12::ResourceBarrier(ID3D12GraphicsCommandList* cmdList, ID3D12
     barrier.Transition.pResource = resource;
     barrier.Transition.StateBefore = beforeState;
     barrier.Transition.StateAfter = afterState;
-    barrier.Transition.Subresource = 0;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     cmdList->ResourceBarrier(1, &barrier);
 }
 
@@ -295,17 +295,17 @@ void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
                                                  IID_PPV_ARGS(&cmdList));
             if (result != S_OK)
             {
-                LOG_ERROR("CreateCommandList _commandList[{}]: {:X}", i, (unsigned long) result);
+                LOG_ERROR("CreateCommandList _hudlessCommandList[{}]: {:X}", i, (unsigned long) result);
                 break;
             }
-            cmdList->SetName(L"_commandList");
+            cmdList->SetName(L"_hudlessCommandList");
             if (!CheckForRealObject(__FUNCTION__, cmdList, (IUnknown**) &_commandList[i]))
                 _commandList[i] = cmdList;
 
             result = _commandList[i]->Close();
             if (result != S_OK)
             {
-                LOG_ERROR("_commandList[{}]->Close: {:X}", i, (unsigned long) result);
+                LOG_ERROR("_hudlessCommandList[{}]->Close: {:X}", i, (unsigned long) result);
                 break;
             }
         }
@@ -340,43 +340,6 @@ ID3D12CommandList* IFGFeature_Dx12::GetCommandList() { return _commandList[GetIn
 
 bool IFGFeature_Dx12::NoHudless() { return _noHudless[GetIndex()]; }
 
-ID3D12CommandList* IFGFeature_Dx12::ExecuteHudlessCmdList(ID3D12CommandQueue* queue)
-{
-    static std::mutex executeMutex;
-
-    std::lock_guard<std::mutex> lock(executeMutex);
-
-    if (!_hudlessDispatchReady)
-        return nullptr;
-
-    auto fIndex = GetIndex();
-    auto result = _commandList[fIndex]->Close();
-
-    _mvAndDepthReady[fIndex] = false;
-    _hudlessReady[fIndex] = false;
-    _hudlessDispatchReady[fIndex] = false;
-
-    LOG_DEBUG("_commandList[{}]->Close() result: {:X}", fIndex, (UINT) result);
-
-    if (result == S_OK)
-    {
-        ID3D12CommandList* cl[] = { _commandList[fIndex] };
-
-        if (queue == nullptr)
-            _gameCommandQueue->ExecuteCommandLists(1, cl);
-        else
-            queue->ExecuteCommandLists(1, cl);
-
-        return _commandList[fIndex];
-    }
-    else
-    {
-        State::Instance().FGchanged = true;
-    }
-
-    return nullptr;
-}
-
 void IFGFeature_Dx12::SetUpscaleInputsReady() { _mvAndDepthReady[GetIndex()] = true; }
 
 void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady[GetIndex()] = true; }
@@ -389,21 +352,6 @@ void IFGFeature_Dx12::Present()
     _mvAndDepthReady[fIndex] = false;
     _hudlessReady[fIndex] = false;
     _hudlessDispatchReady[fIndex] = false;
-
-    // if (!_mvAndDepthReady[fIndex])
-    //{
-    //     _mvAndDepthReady[fIndex] = false;
-    //     _hudlessReady[fIndex] = false;
-    //     _hudlessDispatchReady[fIndex] = false;
-    //     return;
-    // }
-
-    // auto hudless = _hudlessReady[fIndex];
-    //_mvAndDepthReady[fIndex] = false;
-    //_hudlessReady[fIndex] = false;
-    //_hudlessDispatchReady[fIndex] = false;
-
-    // DispatchHudless(nullptr, hudless, State::Instance().lastFrameTime);
 }
 
 bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady[GetIndex()]; }

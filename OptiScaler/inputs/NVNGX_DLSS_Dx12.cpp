@@ -57,7 +57,7 @@ static void ResourceBarrier(ID3D12GraphicsCommandList* InCommandList, ID3D12Reso
     barrier.Transition.pResource = InResource;
     barrier.Transition.StateBefore = InBeforeState;
     barrier.Transition.StateAfter = InAfterState;
-    barrier.Transition.Subresource = 0;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     InCommandList->ResourceBarrier(1, &barrier);
 }
 
@@ -1491,7 +1491,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             HooksDx::CurrentSwapchainFormat() != DXGI_FORMAT_UNKNOWN)
         {
             fg->CreateObjects(D3D12Device);
-            fg->CreateContext(D3D12Device, deviceContext->feature.get());
+            fg->CreateContext(D3D12Device, deviceContext->feature->GetFeatureFlags(),
+                              deviceContext->feature->DisplayWidth(), deviceContext->feature->DisplayHeight());
             fg->ResetCounters();
             fg->UpdateTarget();
         }
@@ -1574,7 +1575,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
 
         if (fg != nullptr)
         {
-            fg->UpscaleStart();
+            fg->StartNewFrame();
 
             fg->SetCameraValues(cameraNear, cameraFar, cameraVFov, meterFactor);
             fg->SetFrameTimeDelta(State::Instance().lastFrameTime);
@@ -1604,7 +1605,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             fg->Mutex.unlockThis(4);
         }
 
-        ResTrack_Dx12::SetUpscalerCmdList(InCmdList);
+        ResTrack_Dx12::SetInputsCmdList(InCmdList);
         bool allocatorReset = false;
         frameIndex = fg->GetIndex();
 
@@ -1709,8 +1710,6 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             Config::Instance()->OverlayMenu.value_or_default() && Config::Instance()->FGEnabled.value_or_default() &&
             fg->TargetFrame() < fg->FrameCount() && State::Instance().currentSwapchain != nullptr)
         {
-            fg->UpscaleEnd();
-
             if (Config::Instance()->FGHUDFix.value_or_default())
             {
                 // For signal after mv & depth copies
