@@ -36,8 +36,8 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
 
     void CreateContext(ID3D12Device* device, IFeature* upscalerContext) override final;
 
-    bool Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime) override final;
-    bool DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime) override final;
+    // bool Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime) override final;
+    bool Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime) override final;
 
     void* FrameGenerationContext() override final;
     void* SwapchainContext() override final;

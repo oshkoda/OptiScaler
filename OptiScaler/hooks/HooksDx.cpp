@@ -291,7 +291,8 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         fg->Present();
 
         LOG_DEBUG("Dispatch hudless fg");
-        if (fg->DispatchHudless(nullptr, false, State::Instance().lastFrameTime))
+
+        if (fg->Dispatch(nullptr, false, State::Instance().lastFrameTime))
         {
             auto result = fg->ExecuteHudlessCmdList(State::Instance().currentCommandQueue);
 

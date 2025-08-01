@@ -94,81 +94,247 @@ feature_version FSRFG_Dx12::Version()
 
 const char* FSRFG_Dx12::Name() { return "FSR-FG"; }
 
-bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime)
-{
-    LOG_DEBUG("(FG) running, frame: {0}", _frameCount);
+// bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* output, double frameTime)
+//{
+//     LOG_DEBUG("(FG) running, frame: {0}", _frameCount);
+//
+//     _lastDispatchedFrame = _frameCount;
+//
+//     if (State::Instance().FSRFGFTPchanged)
+//         ConfigureFramePaceTuning();
+//
+//     auto frameIndex = _frameCount % BUFFER_COUNT;
+//
+//     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+//     {
+//         LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
+//         Mutex.lock(1);
+//         LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());
+//     }
+//
+//     // Update frame generation config
+//     ffxConfigureDescFrameGeneration m_FrameGenerationConfig = {};
+//
+//     DXGI_SWAP_CHAIN_DESC scDesc {};
+//     _swapChain->GetDesc(&scDesc);
+//     auto desc = output->GetDesc();
+//     if (Config::Instance()->FGHUDFixExtended.value_or_default() && desc.Format == scDesc.BufferDesc.Format)
+//     {
+//         if (desc.Width == scDesc.BufferDesc.Width && desc.Height == scDesc.BufferDesc.Height)
+//         {
+//             if (CreateBufferResource(State::Instance().currentD3D12Device, output, D3D12_RESOURCE_STATE_COPY_DEST,
+//                                      &_paramHudless[frameIndex], true, false))
+//             {
+//                 LOG_DEBUG("(FG) desc.Format == HooksDx::swapchainFormat, using for hudless!");
+//                 cmdList->CopyResource(_paramHudless[frameIndex], output);
+//
+//                 m_FrameGenerationConfig.HUDLessColor =
+//                     ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
+//             }
+//         }
+//         else if (Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
+//                  desc.Height >= scDesc.BufferDesc.Height - 32 && desc.Height <= scDesc.BufferDesc.Height + 32 &&
+//                  desc.Width >= scDesc.BufferDesc.Width - 32 && desc.Width <= scDesc.BufferDesc.Width + 32 &&
+//                  State::Instance().currentD3D12Device != nullptr)
+//         {
+//             if (CreateBufferResourceWithSize(State::Instance().currentD3D12Device, output,
+//                                              D3D12_RESOURCE_STATE_COPY_DEST, &_paramHudless[frameIndex],
+//                                              scDesc.BufferDesc.Width, scDesc.BufferDesc.Height, true, false))
+//             {
+//                 D3D12_TEXTURE_COPY_LOCATION srcLocation;
+//                 ZeroMemory(&srcLocation, sizeof(srcLocation));
+//                 srcLocation.pResource = output;
+//                 srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+//                 srcLocation.SubresourceIndex = 0; // copy from mip 0, array slice 0
+//
+//                 D3D12_TEXTURE_COPY_LOCATION dstLocation;
+//                 ZeroMemory(&dstLocation, sizeof(dstLocation));
+//                 dstLocation.pResource = _paramHudless[frameIndex];
+//                 dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+//                 dstLocation.SubresourceIndex = 0; // paste into mip 0, array slice 0
+//
+//                 D3D12_BOX srcBox;
+//                 srcBox.left = 0;
+//                 srcBox.top = 0;
+//                 srcBox.front = 0;
+//                 srcBox.back = 1;
+//
+//                 if (scDesc.BufferDesc.Width > desc.Width || scDesc.BufferDesc.Height > desc.Height)
+//                 {
+//                     srcBox.right = desc.Width;
+//                     srcBox.bottom = desc.Height;
+//                     UINT top = (scDesc.BufferDesc.Height - desc.Height) / 2;
+//                     UINT left = (scDesc.BufferDesc.Width - desc.Width) / 2;
+//
+//                     cmdList->CopyTextureRegion(&dstLocation, left, top, 0, &srcLocation, &srcBox);
+//                 }
+//                 else
+//                 {
+//                     srcBox.right = scDesc.BufferDesc.Width;
+//                     srcBox.bottom = scDesc.BufferDesc.Height;
+//
+//                     cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox);
+//                 }
+//
+//                 m_FrameGenerationConfig.HUDLessColor =
+//                     ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_COPY_DEST);
+//             }
+//         }
+//     }
+//     else
+//     {
+//         m_FrameGenerationConfig.HUDLessColor = FfxApiResource({});
+//     }
+//
+//     m_FrameGenerationConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION;
+//     m_FrameGenerationConfig.frameGenerationEnabled = true;
+//     m_FrameGenerationConfig.flags = 0;
+//
+//     if (Config::Instance()->FGDebugView.value_or_default())
+//         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_VIEW;
+//
+//     if (Config::Instance()->FGDebugTearLines.value_or_default())
+//         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_TEAR_LINES;
+//
+//     if (Config::Instance()->FGDebugResetLines.value_or_default())
+//         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_RESET_INDICATORS;
+//
+//     if (Config::Instance()->FGDebugPacingLines.value_or_default())
+//         m_FrameGenerationConfig.flags |= FFX_FRAMEGENERATION_FLAG_DRAW_DEBUG_PACING_LINES;
+//
+//     m_FrameGenerationConfig.allowAsyncWorkloads = Config::Instance()->FGAsync.value_or_default();
+//
+//     // use swapchain buffer info
+//     DXGI_SWAP_CHAIN_DESC scDesc1 {};
+//     if (State::Instance().currentSwapchain->GetDesc(&scDesc1) == S_OK)
+//     {
+//         if (State::Instance().currentFeature != nullptr)
+//         {
+//             m_FrameGenerationConfig.generationRect.left = Config::Instance()->FGRectLeft.value_or(
+//                 (scDesc1.BufferDesc.Width - State::Instance().currentFeature->DisplayWidth()) / 2);
+//             m_FrameGenerationConfig.generationRect.top = Config::Instance()->FGRectTop.value_or(
+//                 (scDesc1.BufferDesc.Height - State::Instance().currentFeature->DisplayHeight()) / 2);
+//         }
+//         else
+//         {
+//             m_FrameGenerationConfig.generationRect.left = Config::Instance()->FGRectLeft.value_or(0);
+//             m_FrameGenerationConfig.generationRect.top = Config::Instance()->FGRectTop.value_or(0);
+//         }
+//         m_FrameGenerationConfig.generationRect.width =
+//             Config::Instance()->FGRectWidth.value_or(scDesc1.BufferDesc.Width);
+//         m_FrameGenerationConfig.generationRect.height =
+//             Config::Instance()->FGRectHeight.value_or(scDesc1.BufferDesc.Height);
+//     }
+//     else
+//     {
+//         m_FrameGenerationConfig.generationRect.left = Config::Instance()->FGRectLeft.value_or(0);
+//         m_FrameGenerationConfig.generationRect.top = Config::Instance()->FGRectTop.value_or(0);
+//         m_FrameGenerationConfig.generationRect.width =
+//             Config::Instance()->FGRectWidth.value_or(State::Instance().currentFeature->DisplayWidth());
+//         m_FrameGenerationConfig.generationRect.height =
+//             Config::Instance()->FGRectHeight.value_or(State::Instance().currentFeature->DisplayHeight());
+//     }
+//
+//     m_FrameGenerationConfig.frameGenerationCallbackUserContext = this;
+//     m_FrameGenerationConfig.frameGenerationCallback = [](ffxDispatchDescFrameGeneration* params,
+//                                                          void* pUserCtx) -> ffxReturnCode_t
+//     {
+//         FSRFG_Dx12* fsrFG = nullptr;
+//
+//         if (pUserCtx != nullptr)
+//             fsrFG = reinterpret_cast<FSRFG_Dx12*>(pUserCtx);
+//
+//         if (fsrFG != nullptr)
+//             return fsrFG->DispatchCallback(params);
+//
+//         return FFX_API_RETURN_ERROR;
+//     };
+//
+//     m_FrameGenerationConfig.onlyPresentGenerated = State::Instance().FGonlyGenerated; // check here
+//     m_FrameGenerationConfig.frameID = _frameCount;
+//     m_FrameGenerationConfig.swapChain = _swapChain;
+//
+//     ffxReturnCode_t retCode = FfxApiProxy::D3D12_Configure()(&_fgContext, &m_FrameGenerationConfig.header);
+//
+//     if (retCode != FFX_API_RETURN_OK)
+//         LOG_ERROR("(FG) D3D12_Configure error: {}({})", retCode, FfxApiProxy::ReturnCodeToString(retCode));
+//
+//     if (retCode == FFX_API_RETURN_OK)
+//     {
+//         ffxCreateBackendDX12Desc backendDesc {};
+//         backendDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12;
+//         backendDesc.device = State::Instance().currentD3D12Device;
+//
+//         ffxDispatchDescFrameGenerationPrepare dfgPrepare {};
+//         dfgPrepare.header.type = FFX_API_DISPATCH_DESC_TYPE_FRAMEGENERATION_PREPARE;
+//         dfgPrepare.header.pNext = &backendDesc.header;
+//
+//         // GetDispatchCommandList();
+//
+// #ifdef USE_QUEUE_FOR_FG
+//         dfgPrepare.commandList = _commandList[frameIndex];
+// #else
+//         dfgPrepare.commandList = cmdList;
+// #endif
+//
+//         dfgPrepare.frameID = _frameCount;
+//         dfgPrepare.flags = m_FrameGenerationConfig.flags;
+//         dfgPrepare.renderSize = { State::Instance().currentFeature->RenderWidth(),
+//                                   State::Instance().currentFeature->RenderHeight() };
+//
+//         dfgPrepare.jitterOffset.x = _jitterX;
+//         dfgPrepare.jitterOffset.y = _jitterY;
+//         dfgPrepare.motionVectors = ffxApiGetResourceDX12(_paramVelocity[frameIndex],
+//         FFX_API_RESOURCE_STATE_COPY_DEST); dfgPrepare.depth = ffxApiGetResourceDX12(_paramDepth[frameIndex],
+//         FFX_API_RESOURCE_STATE_COPY_DEST);
+//
+//         dfgPrepare.motionVectorScale.x = _mvScaleX;
+//         dfgPrepare.motionVectorScale.y = _mvScaleY;
+//         dfgPrepare.cameraFar = _cameraFar;
+//         dfgPrepare.cameraNear = _cameraNear;
+//         dfgPrepare.cameraFovAngleVertical = _cameraVFov;
+//         dfgPrepare.frameTimeDelta = _ftDelta;
+//         dfgPrepare.viewSpaceToMetersFactor = _meterFactor;
+//
+//         retCode = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &dfgPrepare.header);
+//
+//         if (retCode != FFX_API_RETURN_OK)
+//         {
+//             LOG_ERROR("(FG) D3D12_Dispatch result: {}({})", retCode, FfxApiProxy::ReturnCodeToString(retCode));
+//         }
+//         else
+//         {
+//             LOG_DEBUG("(FG) Dispatch ok.");
+//
+// #ifdef USE_QUEUE_FOR_FG
+//             if (!Config::Instance()->FGHudFixCloseAfterCallback.value_or_default())
+//             {
+//                 ID3D12CommandList* cl[1] = { nullptr };
+//                 auto result = _commandList[frameIndex]->Close();
+//                 cl[0] = _commandList[frameIndex];
+//                 _commandQueue->ExecuteCommandLists(1, cl);
+//
+//                 if (result != S_OK)
+//                 {
+//                     LOG_ERROR("(FG) Close result: {}", (UINT) result);
+//                 }
+//             }
+// #endif
+//         }
+//     }
+//
+//     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+//     {
+//         LOG_TRACE("Releasing Mutex: {}", Mutex.getOwner());
+//         Mutex.unlockThis(1);
+//     }
+//
+//     _mvAndDepthReady[frameIndex] = false;
+//
+//     return retCode == FFX_API_RETURN_OK;
+// }
 
-    _lastDispatchedFrame = _frameCount;
-
-    if (State::Instance().FSRFGFTPchanged)
-        ConfigureFramePaceTuning();
-
-    auto frameIndex = _frameCount % BUFFER_COUNT;
-
-    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
-    {
-        LOG_TRACE("Waiting Mutex 1, current: {}", Mutex.getOwner());
-        Mutex.lock(1);
-        LOG_TRACE("Accuired Mutex: {}", Mutex.getOwner());
-    }
-
-    // Update frame generation config
-    ffxConfigureDescFrameGeneration m_FrameGenerationConfig = {};
-
-    DXGI_SWAP_CHAIN_DESC scDesc {};
-    _swapChain->GetDesc(&scDesc);
-    auto desc = output->GetDesc();
-    if (Config::Instance()->FGHUDFixExtended.value_or_default() && desc.Format == scDesc.BufferDesc.Format)
-    {
-        if (desc.Width == scDesc.BufferDesc.Width && desc.Height == scDesc.BufferDesc.Height)
-        {
-            if (CreateBufferResource(State::Instance().currentD3D12Device, output, D3D12_RESOURCE_STATE_COPY_DEST,
-                                     &_paramHudless[frameIndex], true, false))
-            {
-                LOG_DEBUG("(FG) desc.Format == HooksDx::swapchainFormat, using for hudless!");
-                cmdList->CopyResource(_paramHudless[frameIndex], output);
-
-                m_FrameGenerationConfig.HUDLessColor =
-                    ffxApiGetResourceDX12(_paramHudless[frameIndex], FFX_API_RESOURCE_STATE_UNORDERED_ACCESS);
-            }
-        }
-        else if (Config::Instance()->FGRelaxedResolutionCheck.value_or_default() &&
-                 desc.Height >= scDesc.BufferDesc.Height - 32 && desc.Height <= scDesc.BufferDesc.Height + 32 &&
-                 desc.Width >= scDesc.BufferDesc.Width - 32 && desc.Width <= scDesc.BufferDesc.Width + 32 &&
-                 State::Instance().currentD3D12Device != nullptr)
-        {
-            if (CreateBufferResourceWithSize(State::Instance().currentD3D12Device, output,
-                                             D3D12_RESOURCE_STATE_COPY_DEST, &_paramHudless[frameIndex],
-                                             scDesc.BufferDesc.Width, scDesc.BufferDesc.Height, true, false))
-            {
-                D3D12_TEXTURE_COPY_LOCATION srcLocation;
-                ZeroMemory(&srcLocation, sizeof(srcLocation));
-                srcLocation.pResource = output;
-                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-                srcLocation.SubresourceIndex = 0; // copy from mip 0, array slice 0
-
-                D3D12_TEXTURE_COPY_LOCATION dstLocation;
-                ZeroMemory(&dstLocation, sizeof(dstLocation));
-                dstLocation.pResource = _paramHudless[frameIndex];
-                dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-                dstLocation.SubresourceIndex = 0; // paste into mip 0, array slice 0
-
-                D3D12_BOX srcBox;
-                srcBox.left = 0;
-                srcBox.top = 0;
-                srcBox.front = 0;
-                srcBox.back = 1;
-
-                if (scDesc.BufferDesc.Width > desc.Width || scDesc.BufferDesc.Height > desc.Height)
-                {
-                    srcBox.right = desc.Width;
-                    srcBox.bottom = desc.Height;
-                    UINT top = (scDesc.BufferDesc.Height - desc.Height) / 2;
-                    UINT left = (scDesc.BufferDesc.Width - desc.Width) / 2;
-
-                    cmdList->CopyTextureRegion(&dstLocation, left, top, 0, &srcLocation, &srcBox);
-                }
-                else
+bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime)
                 {
                     srcBox.right = scDesc.BufferDesc.Width;
                     srcBox.bottom = scDesc.BufferDesc.Height;
@@ -421,7 +587,7 @@ bool FSRFG_Dx12::DispatchHudless(ID3D12GraphicsCommandList* cmdList, bool useHud
             fsrFG = reinterpret_cast<FSRFG_Dx12*>(pUserCtx);
 
         if (fsrFG != nullptr)
-            return fsrFG->HudlessDispatchCallback(params);
+            return fsrFG->DispatchCallback(params);
 
         return FFX_API_RETURN_ERROR;
     };
@@ -547,14 +713,61 @@ ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* par
         params->numGeneratedFrames = 0;
     }
 
-    auto dispatchResult = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &params->header);
-    LOG_DEBUG("(FG) D3D12_Dispatch result: {}, fIndex: {}", (UINT) dispatchResult, fIndex);
+// ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* params)
+//{
+//     auto fIndex = params->frameID % BUFFER_COUNT;
+//
+//     params->reset = (_reset != 0);
+//
+// #ifdef USE_QUEUE_FOR_FG
+//     if (Config::Instance()->FGHudFixCloseAfterCallback.value_or_default())
+//     {
+//         ID3D12CommandList* cl[1] = { nullptr };
+//         auto result = _commandList[fIndex]->Close();
+//         cl[0] = _commandList[fIndex];
+//         _commandQueue->ExecuteCommandLists(1, cl);
+//
+//         if (result != S_OK)
+//         {
+//             LOG_ERROR("(FG) Close result: {}", (UINT) result);
+//         }
+//     }
+// #endif
+//
+//     // check for status
+//     if (!Config::Instance()->FGEnabled.value_or_default() || _fgContext == nullptr || State::Instance().SCchanged
+// #ifdef USE_QUEUE_FOR_FG
+//         || _commandList[fIndex] == nullptr || _commandQueue == nullptr
+// #endif
+//     )
+//     {
+//         LOG_WARN("(FG) Cancel async dispatch fIndex: {}", fIndex);
+//         params->numGeneratedFrames = 0;
+//     }
+//
+//     // If fg is active but upscaling paused
+//     if (State::Instance().currentFeature == nullptr || !_isActive || params->frameID == _lastUpscaledFrameId ||
+//         State::Instance().FGchanged || State::Instance().currentFeature->FrameCount() == 0)
+//     {
+//         LOG_WARN("(FG) Callback without active FG! fIndex:{}", fIndex);
+//
+// #ifdef USE_QUEUE_FOR_FG
+//         auto allocator = _commandAllocators[fIndex];
+//         auto result = allocator->Reset();
+//         result = _commandList[fIndex]->Reset(allocator, nullptr);
+// #endif
+//
+//         params->numGeneratedFrames = 0;
+//     }
+//
+//     auto dispatchResult = FfxApiProxy::D3D12_Dispatch()(&_fgContext, &params->header);
+//     LOG_DEBUG("(FG) D3D12_Dispatch result: {}, fIndex: {}", (UINT) dispatchResult, fIndex);
+//
+//     _lastUpscaledFrameId = params->frameID;
+//     return dispatchResult;
+// };
 
-    _lastUpscaledFrameId = params->frameID;
-    return dispatchResult;
-};
-
-ffxReturnCode_t FSRFG_Dx12::HudlessDispatchCallback(ffxDispatchDescFrameGeneration* params)
+ffxReturnCode_t FSRFG_Dx12::DispatchCallback(ffxDispatchDescFrameGeneration* params)
 {
     // CallbackMutex.lock();
 
