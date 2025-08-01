@@ -24,6 +24,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     bool _mvAndDepthReady[BUFFER_COUNT] = { false, false, false, false };
     bool _hudlessReady[BUFFER_COUNT] = { false, false, false, false };
     bool _hudlessDispatchReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _noHudless[BUFFER_COUNT] = { false, false, false, false };
 
     ID3D12Resource* _paramVelocity[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramVelocityCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
@@ -70,7 +71,8 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     void SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless, D3D12_RESOURCE_STATES state,
                     bool makeCopy = false);
 
-    bool IsFGCommandList(void* cmdList);
+    ID3D12CommandList* GetCommandList();
+    bool NoHudless();
     ID3D12CommandList* ExecuteHudlessCmdList(ID3D12CommandQueue* queue = nullptr);
 
     IFGFeature_Dx12() = default;

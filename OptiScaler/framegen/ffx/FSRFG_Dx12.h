@@ -46,7 +46,6 @@ class FSRFG_Dx12 : public virtual IFGFeature_Dx12
     void ConfigureFramePaceTuning();
 
     ffxReturnCode_t DispatchCallback(ffxDispatchDescFrameGeneration* params);
-    ffxReturnCode_t HudlessDispatchCallback(ffxDispatchDescFrameGeneration* params);
 
     FSRFG_Dx12() : IFGFeature_Dx12(), IFGFeature()
     {

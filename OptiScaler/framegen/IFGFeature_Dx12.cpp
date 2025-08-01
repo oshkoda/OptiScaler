@@ -336,21 +336,9 @@ void IFGFeature_Dx12::ReleaseObjects()
     _depthFlip.reset();
 }
 
-bool IFGFeature_Dx12::IsFGCommandList(void* cmdList)
-{
-    auto found = false;
+ID3D12CommandList* IFGFeature_Dx12::GetCommandList() { return _commandList[GetIndex()]; }
 
-    for (size_t i = 0; i < BUFFER_COUNT; i++)
-    {
-        if (_commandList[i] == cmdList)
-        {
-            found = true;
-            break;
-        }
-    }
-
-    return found;
-}
+bool IFGFeature_Dx12::NoHudless() { return _noHudless[GetIndex()]; }
 
 ID3D12CommandList* IFGFeature_Dx12::ExecuteHudlessCmdList(ID3D12CommandQueue* queue)
 {

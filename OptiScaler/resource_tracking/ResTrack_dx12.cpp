@@ -107,6 +107,9 @@ static PFN_SetComputeRootDescriptorTable o_SetComputeRootDescriptorTable = nullp
 static std::unique_ptr<HeapInfo> fgHeaps[1000];
 static UINT fgHeapIndex = 0;
 
+static void* _hudlessCmdList = nullptr;
+static void* _upscaleCmdList = nullptr;
+
 struct HeapCacheTLS
 {
     int index = -1;
@@ -547,22 +550,22 @@ bool ResTrack_Dx12::IsHudFixActive()
     return true;
 }
 
-bool ResTrack_Dx12::IsFGCommandList(IUnknown* cmdList)
-{
-    // prevent hudfix check
-    if (State::Instance().currentFG == nullptr)
-        return true;
-
-    IFGFeature_Dx12* fg = nullptr;
-
-    fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
-
-    // prevent hudfix check
-    if (fg == nullptr)
-        return true;
-
-    return fg->IsFGCommandList(cmdList);
-}
+// bool ResTrack_Dx12::IsFGCommandList(IUnknown* cmdList)
+//{
+//     // prevent hudfix check
+//     if (State::Instance().currentFG == nullptr)
+//         return true;
+//
+//     IFGFeature_Dx12* fg = nullptr;
+//
+//     fg = reinterpret_cast<IFGFeature_Dx12*>(State::Instance().currentFG);
+//
+//     // prevent hudfix check
+//     if (fg == nullptr)
+//         return true;
+//
+//     return fg->IsFGCommandList(cmdList);
+// }
 
 #pragma endregion
 
@@ -728,53 +731,48 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
 void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumCommandLists,
                                           ID3D12CommandList* const* ppCommandLists)
 {
+    auto signal = false;
     auto fg = State::Instance().currentFG;
-    auto index = fg != nullptr ? fg->FrameCount() % BUFFER_COUNT : -1;
+    auto index = fg == nullptr ? 0 : fg->GetIndex();
 
-    if (State::Instance().activeFgType == OptiFG && fg != nullptr &&
-        (_upscalerCommandList[index] != nullptr || _commandList[index] != nullptr))
+    if (State::Instance().activeFgType == OptiFG && (_hudlessCmdList != nullptr || _upscaleCmdList != nullptr))
     {
-        if (fg->IsActive() && fg->TargetFrame() < fg->FrameCount())
+        int cmdListCount = 0;
+        int targetListCount = (_upscaleCmdList == nullptr ? 0 : 1) + (fg->NoHudless() ? 0 : 1);
+
+        for (size_t i = 0; i < NumCommandLists; i++)
         {
+            if (_upscaleCmdList != nullptr && _upscaleCmdList == ppCommandLists[i])
+            {
+                LOG_DEBUG("_upscaleCmdList: {:X}", (size_t) _upscaleCmdList);
+                cmdListCount++;
+                _upscaleCmdList = nullptr;
+            }
+
+            if (_hudlessCmdList != nullptr && _hudlessCmdList == ppCommandLists[i])
+            {
+                LOG_DEBUG("_hudlessCmdList: {:X}", (size_t) _hudlessCmdList);
+                cmdListCount++;
+                _hudlessCmdList = nullptr;
+            }
+        }
+
+        if (cmdListCount == targetListCount)
+        {
+            std::vector<ID3D12CommandList*> ppCmdLists;
+
             for (size_t i = 0; i < NumCommandLists; i++)
             {
-                if (!fg->HudlessReady())
-                {
-                    if (ppCommandLists[i] == _commandList[index])
-                    {
-                        _commandList[index] = nullptr;
-                        LOG_DEBUG("Hudless CmdList: {:X}", (size_t) ppCommandLists[i]);
-
-                        fg->SetHudlessReady();
-                    }
-                }
-
-                if (!fg->UpscalerInputsReady())
-                {
-                    if (ppCommandLists[i] == _upscalerCommandList[index])
-                    {
-                        _upscalerCommandList[index] = nullptr;
-                        LOG_DEBUG("Upscaler CmdList: {:X}", (size_t) ppCommandLists[i]);
-
-                        fg->SetUpscaleInputsReady();
-                    }
-                }
-
-                if (fg->ReadyForExecute())
-                {
-                    LOG_WARN("Dispatch from ExecuteCommandLists!");
-
-                    if (fg->DispatchHudless(nullptr, false, State::Instance().lastFrameTime))
-                    {
-                        auto result = fg->ExecuteHudlessCmdList(State::Instance().currentCommandQueue);
-
-                        if (result != nullptr)
-                            State::Instance().currentCommandQueue->ExecuteCommandLists(1, &result);
-                    }
-
-                    break;
-                }
+                ppCmdLists.push_back(ppCommandLists[i]);
             }
+
+            ppCmdLists.push_back(fg->GetCommandList());
+
+            LOG_DEBUG("Add fg command list!");
+
+            o_ExecuteCommandLists(This, NumCommandLists + 1, ppCmdLists.data());
+
+            return;
         }
     }
 
@@ -1166,7 +1164,7 @@ void ResTrack_Dx12::hkSetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* 
         return;
     }
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         LOG_DEBUG_ONLY("Menu cmdlist: {} || fgCommandList: {}", This == MenuOverlayDx::MenuCommandList(),
                        IsFGCommandList(This));
@@ -1242,7 +1240,7 @@ void ResTrack_Dx12::hkOMSetRenderTargets(ID3D12GraphicsCommandList* This, UINT N
 
     LOG_DEBUG_ONLY("NumRenderTargetDescriptors: {}", NumRenderTargetDescriptors);
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         LOG_DEBUG_ONLY("Menu cmdlist: {} || fgCommandList: {}", This == MenuOverlayDx::MenuCommandList(),
                        IsFGCommandList(This));
@@ -1336,7 +1334,7 @@ void ResTrack_Dx12::hkSetComputeRootDescriptorTable(ID3D12GraphicsCommandList* T
 
     LOG_DEBUG_ONLY("");
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         LOG_DEBUG_ONLY("Menu cmdlist: {} || fgCommandList: {}", This == MenuOverlayDx::MenuCommandList(),
                        IsFGCommandList(This));
@@ -1413,7 +1411,7 @@ void ResTrack_Dx12::hkDrawInstanced(ID3D12GraphicsCommandList* This, UINT Vertex
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         if (!_cmdList)
             _cmdList = true;
@@ -1477,7 +1475,7 @@ void ResTrack_Dx12::hkDrawIndexedInstanced(ID3D12GraphicsCommandList* This, UINT
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         if (!_cmdList)
             _cmdList = true;
@@ -1558,7 +1556,7 @@ void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12Graph
 void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 {
     auto fg = State::Instance().currentFG;
-    auto index = fg != nullptr ? fg->FrameCount() % BUFFER_COUNT : -1;
+    auto index = fg != nullptr ? fg->GetIndex() : 0;
 
     if (State::Instance().activeFgType == OptiFG && fg != nullptr &&
         (_upscalerCommandList[index] != nullptr || _commandList[index] != nullptr))
@@ -1574,9 +1572,10 @@ void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 
                     fg->SetHudlessReady();
 
-                    if (fg->ReadyForExecute())
-                        fg->DispatchHudless(This, true, State::Instance().lastFrameTime);
+                    // if (fg->ReadyForExecute())
+                    //     fg->Dispatch(This, true, State::Instance().lastFrameTime);
 
+                    _hudlessCmdList = _commandList[index];
                     _commandList[index] = nullptr;
                 }
             }
@@ -1589,9 +1588,10 @@ void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 
                     fg->SetUpscaleInputsReady();
 
-                    if (fg->ReadyForExecute())
-                        fg->DispatchHudless(This, true, State::Instance().lastFrameTime);
+                    // if (fg->ReadyForExecute())
+                    //     fg->Dispatch(This, true, State::Instance().lastFrameTime);
 
+                    _upscaleCmdList = _upscalerCommandList[index];
                     _upscalerCommandList[index] = nullptr;
                 }
             }
@@ -1611,7 +1611,7 @@ void ResTrack_Dx12::hkDispatch(ID3D12GraphicsCommandList* This, UINT ThreadGroup
 
     auto fIndex = Hudfix_Dx12::ActivePresentFrame() % BUFFER_COUNT;
 
-    if (This == MenuOverlayDx::MenuCommandList() || IsFGCommandList(This))
+    if (This == MenuOverlayDx::MenuCommandList() /*|| IsFGCommandList(This)*/)
     {
         if (!_cmdList)
             _cmdList = true;
@@ -1863,7 +1863,7 @@ void ResTrack_Dx12::HookDevice(ID3D12Device* device)
         DetourTransactionCommit();
     }
 
-    // HookToQueue(device);
+    HookToQueue(device);
     HookCommandList(device);
     HookResource(device);
 }
@@ -1890,6 +1890,8 @@ void ResTrack_Dx12::ClearPossibleHudless()
 
     _foundHudless = false;
     _foundUpscale = false;
+    _hudlessCmdList = nullptr;
+    _upscaleCmdList = nullptr;
 }
 
 void ResTrack_Dx12::PresentDone() { _presentDone = true; }
