@@ -868,7 +868,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             real = (ID3D12CommandQueue*) pDevice;
 
         _skipFGSwapChainCreation = true;
-        State::Instance().skipHeapCapture = true;
         State::Instance().skipDxgiLoadChecks = true;
 
         if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
@@ -880,7 +879,6 @@ static HRESULT hkCreateSwapChain(IDXGIFactory* pFactory, IUnknown* pDevice, DXGI
             State::Instance().skipHeapCapture = false;
 
         State::Instance().skipDxgiLoadChecks = false;
-        State::Instance().skipHeapCapture = false;
         _skipFGSwapChainCreation = false;
 
         if (scResult)
@@ -1152,7 +1150,6 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
             real = (ID3D12CommandQueue*) pDevice;
 
         _skipFGSwapChainCreation = true;
-        State::Instance().skipHeapCapture = true;
         State::Instance().skipDxgiLoadChecks = true;
 
         if (Config::Instance()->FGDontUseSwapchainBuffers.value_or_default())
@@ -1164,7 +1161,6 @@ static HRESULT hkCreateSwapChainForHwnd(IDXGIFactory* This, IUnknown* pDevice, H
             State::Instance().skipHeapCapture = false;
 
         State::Instance().skipDxgiLoadChecks = false;
-        State::Instance().skipHeapCapture = false;
         _skipFGSwapChainCreation = false;
 
         if (scResult)
