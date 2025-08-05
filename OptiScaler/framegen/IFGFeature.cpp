@@ -7,7 +7,13 @@ int IFGFeature::GetIndex() { return (_frameCount % BUFFER_COUNT); }
 UINT64 IFGFeature::StartNewFrame()
 {
     LOG_FUNC();
-    return ++_frameCount;
+    _frameCount++;
+    auto fIndex = GetIndex();
+    _mvAndDepthReady[fIndex] = false;
+    _hudlessReady[fIndex] = false;
+    _hudlessDispatchReady[fIndex] = false;
+
+    return _frameCount;
 }
 
 bool IFGFeature::CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject)

@@ -26,6 +26,11 @@ class IFGFeature
     bool _isActive = false;
     UINT64 _targetFrame = 0;
 
+    bool _mvAndDepthReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _hudlessReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _hudlessDispatchReady[BUFFER_COUNT] = { false, false, false, false };
+    bool _noHudless[BUFFER_COUNT] = { false, false, false, false };
+
     IID streamlineRiid {};
 
     bool CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject);

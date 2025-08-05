@@ -21,11 +21,6 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12CommandQueue* _gameCommandQueue = nullptr;
     HWND _hwnd = NULL;
 
-    bool _mvAndDepthReady[BUFFER_COUNT] = { false, false, false, false };
-    bool _hudlessReady[BUFFER_COUNT] = { false, false, false, false };
-    bool _hudlessDispatchReady[BUFFER_COUNT] = { false, false, false, false };
-    bool _noHudless[BUFFER_COUNT] = { false, false, false, false };
-
     ID3D12Resource* _paramVelocity[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramVelocityCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramDepth[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };

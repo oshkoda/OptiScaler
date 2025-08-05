@@ -106,6 +106,8 @@ static UINT fgHeapIndex = 0;
 
 static void* _hudlessCmdList = nullptr;
 static void* _inputsCmdList = nullptr;
+static bool _hudlessCmdListFound = false;
+static bool _inputsCmdListFound = false;
 
 struct HeapCacheTLS
 {
@@ -682,58 +684,63 @@ void ResTrack_Dx12::hkCreateUnorderedAccessView(ID3D12Device* This, ID3D12Resour
 
 #pragma endregion
 
+inline static std::mutex eclMutex;
+
 void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumCommandLists,
                                           ID3D12CommandList* const* ppCommandLists)
 {
     auto signal = false;
     auto fg = State::Instance().currentFG;
-    auto index = fg == nullptr ? 0 : fg->GetIndex();
 
-    if (State::Instance().activeFgType == OptiFG && (_hudlessCmdList != nullptr || _inputsCmdList != nullptr))
+    if (State::Instance().activeFgType == OptiFG && Config::Instance()->FGHUDFix.value_or_default() && fg != nullptr)
     {
-        int cmdListCount = 0;
-        int targetListCount = 0;
+        std::lock_guard<std::mutex> lock(eclMutex);
 
-        if (_inputsCmdList != nullptr)
-            targetListCount++;
-
-        if (!fg->NoHudless() && (_hudlessCmdList != nullptr || _hudlessCommandList[index] != nullptr))
-            targetListCount++;
-
-        for (size_t i = 0; i < NumCommandLists; i++)
+        if (!_inputsCmdListFound || !_hudlessCmdListFound)
         {
-            if (_inputsCmdList != nullptr && _inputsCmdList == ppCommandLists[i])
-            {
-                LOG_DEBUG("_inputsCmdList: {:X}", (size_t) _inputsCmdList);
-                cmdListCount++;
-                _inputsCmdList = nullptr;
-            }
-
-            if (_hudlessCmdList != nullptr && _hudlessCmdList == ppCommandLists[i])
-            {
-                LOG_DEBUG("_hudlessCmdList: {:X}", (size_t) _hudlessCmdList);
-                cmdListCount++;
-                _hudlessCmdList = nullptr;
-            }
-        }
-
-        if (targetListCount > 0 && cmdListCount == targetListCount)
-        {
-            std::vector<ID3D12CommandList*> ppCmdLists;
+            int cmdListCount = 0;
 
             for (size_t i = 0; i < NumCommandLists; i++)
             {
-                ppCmdLists.push_back(ppCommandLists[i]);
+                LOG_DEBUG("ppCommandLists[{}]: {:X}", i, (size_t) ppCommandLists[i]);
+
+                if (!_inputsCmdListFound && _inputsCmdList == ppCommandLists[i])
+                {
+                    LOG_DEBUG("_inputsCmdList: {:X}", (size_t) _inputsCmdList);
+                    _inputsCmdList = nullptr;
+                    _inputsCmdListFound = true;
+                }
+
+                if (!_hudlessCmdListFound && _hudlessCmdList == ppCommandLists[i])
+                {
+                    LOG_DEBUG("_hudlessCmdList: {:X}", (size_t) _hudlessCmdList);
+                    _hudlessCmdList = nullptr;
+                    _hudlessCmdListFound = true;
+                }
             }
 
-            auto fgCmdList = fg->GetCommandList();
-            ppCmdLists.push_back(fgCmdList);
+            // If there is hudless and both command lists are found
+            if (_inputsCmdListFound && _hudlessCmdListFound)
+            {
+                LOG_TRACE("NoHudless: {}, _hudlessCmdList: {:X}, _inputsCmdList: {:X}", fg->NoHudless(),
+                          (size_t) _hudlessCmdList, (size_t) _inputsCmdList);
 
-            LOG_DEBUG("Add fg command list: {:X}", (size_t) fgCmdList);
+                std::vector<ID3D12CommandList*> ppCmdLists;
 
-            o_ExecuteCommandLists(This, NumCommandLists + 1, ppCmdLists.data());
+                for (size_t i = 0; i < NumCommandLists; i++)
+                {
+                    ppCmdLists.push_back(ppCommandLists[i]);
+                }
 
-            return;
+                auto fgCmdList = fg->GetCommandList();
+                ppCmdLists.push_back(fgCmdList);
+
+                LOG_DEBUG("Add fg command list: {:X}", (size_t) fgCmdList);
+
+                o_ExecuteCommandLists(This, NumCommandLists + 1, ppCmdLists.data());
+
+                return;
+            }
         }
     }
 
@@ -1486,13 +1493,11 @@ void ResTrack_Dx12::hkDrawIndexedInstanced(ID3D12GraphicsCommandList* This, UINT
 void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12GraphicsCommandList* pCommandList)
 {
     IFGFeature_Dx12* fg = State::Instance().currentFG;
+    auto index = fg != nullptr ? fg->GetIndex() : 0;
 
-    if (fg->IsActive() && fg->TargetFrame() < fg->FrameCount())
+    if (State::Instance().activeFgType == OptiFG && fg != nullptr && fg->IsActive() &&
+        (_inputsCommandList[index] != nullptr || _hudlessCommandList[index] != nullptr))
     {
-        auto index = fg->FrameCount() % BUFFER_COUNT;
-
-        // LOG_TRACE("index: {}, bundle cmdList: {:X}, cmdList: {:X}", index, (size_t) This, (size_t) pCommandList);
-
         if (pCommandList == _hudlessCommandList[index])
         {
             LOG_DEBUG("Hudless cmdlist[{}]: {:X}", index, (size_t) This);
@@ -1513,36 +1518,34 @@ void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
     auto fg = State::Instance().currentFG;
     auto index = fg != nullptr ? fg->GetIndex() : 0;
 
-    if (State::Instance().activeFgType == OptiFG && fg != nullptr &&
+    if (State::Instance().activeFgType == OptiFG && fg != nullptr && fg->IsActive() &&
         (_inputsCommandList[index] != nullptr || _hudlessCommandList[index] != nullptr))
     {
+        LOG_DEBUG("CmdList: {:X}", (size_t) This);
 
-        if (fg->IsActive() && fg->TargetFrame() < fg->FrameCount())
+        if (!fg->HudlessReady())
         {
-            if (!fg->HudlessReady())
+            if (This == _hudlessCommandList[index])
             {
-                if (This == _hudlessCommandList[index])
-                {
-                    LOG_DEBUG("Hudless CmdList: {:X}", (size_t) This);
+                LOG_DEBUG("Hudless CmdList: {:X}", (size_t) This);
 
-                    fg->SetHudlessReady();
+                fg->SetHudlessReady();
 
-                    _hudlessCmdList = _hudlessCommandList[index];
-                    _hudlessCommandList[index] = nullptr;
-                }
+                _hudlessCmdList = _hudlessCommandList[index];
+                _hudlessCommandList[index] = nullptr;
             }
+        }
 
-            if (!fg->UpscalerInputsReady())
+        if (!fg->UpscalerInputsReady())
+        {
+            if (This == _inputsCommandList[index])
             {
-                if (This == _inputsCommandList[index])
-                {
-                    LOG_DEBUG("Upscaler CmdList: {:X}", (size_t) This);
+                LOG_DEBUG("Upscaler CmdList: {:X}", (size_t) This);
 
-                    fg->SetUpscaleInputsReady();
+                fg->SetUpscaleInputsReady();
 
-                    _inputsCmdList = _inputsCommandList[index];
-                    _inputsCommandList[index] = nullptr;
-                }
+                _inputsCmdList = _inputsCommandList[index];
+                _inputsCommandList[index] = nullptr;
             }
         }
     }
@@ -1701,8 +1704,8 @@ void ResTrack_Dx12::HookCommandList(ID3D12Device* InDevice)
                 if (o_Dispatch != nullptr)
                     DetourAttach(&(PVOID&) o_Dispatch, hkDispatch);
 
-                // if (o_ExecuteBundle != nullptr)
-                //     DetourAttach(&(PVOID&) o_ExecuteBundle, hkExecuteBundle);
+                if (o_ExecuteBundle != nullptr)
+                    DetourAttach(&(PVOID&) o_ExecuteBundle, hkExecuteBundle);
 
                 if (o_Close != nullptr)
                     DetourAttach(&(PVOID&) o_Close, hkClose);
@@ -1824,6 +1827,8 @@ void ResTrack_Dx12::ClearPossibleHudless()
 
     _hudlessCmdList = nullptr;
     _inputsCmdList = nullptr;
+    _hudlessCmdListFound = false;
+    _inputsCmdListFound = false;
 }
 
 void ResTrack_Dx12::SetInputsCmdList(ID3D12GraphicsCommandList* cmdList)
@@ -1831,8 +1836,8 @@ void ResTrack_Dx12::SetInputsCmdList(ID3D12GraphicsCommandList* cmdList)
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        auto index = fg->FrameCount() % BUFFER_COUNT;
-        LOG_DEBUG("cmdList[{}]: {:X}", index, (size_t) cmdList);
+        auto index = fg->GetIndex();
+        LOG_DEBUG("_inputsCommandList[{}]: {:X}", index, (size_t) cmdList);
         _inputsCommandList[index] = cmdList;
     }
 }
@@ -1842,8 +1847,8 @@ void ResTrack_Dx12::SetHudlessCmdList(ID3D12GraphicsCommandList* cmdList)
     auto fg = State::Instance().currentFG;
     if (fg != nullptr && fg->IsActive())
     {
-        auto index = fg->FrameCount() % BUFFER_COUNT;
-        LOG_DEBUG("cmdList[{}]: {:X}", index, (size_t) cmdList);
+        auto index = fg->GetIndex();
+        LOG_DEBUG("_hudlessCommandList[{}]: {:X}", index, (size_t) cmdList);
         _hudlessCommandList[index] = cmdList;
     }
 }

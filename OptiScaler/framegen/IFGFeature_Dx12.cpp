@@ -346,13 +346,7 @@ void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady[GetIndex()] = true; }
 
 void IFGFeature_Dx12::SetHudlessDispatchReady() { _hudlessDispatchReady[GetIndex()] = true; }
 
-void IFGFeature_Dx12::Present()
-{
-    auto fIndex = LastDispatchedFrame() % BUFFER_COUNT;
-    _mvAndDepthReady[fIndex] = false;
-    _hudlessReady[fIndex] = false;
-    _hudlessDispatchReady[fIndex] = false;
-}
+void IFGFeature_Dx12::Present() { LOG_FUNC(); }
 
 bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady[GetIndex()]; }
 bool IFGFeature_Dx12::HudlessReady() { return _hudlessReady[GetIndex()]; }
