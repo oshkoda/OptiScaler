@@ -793,7 +793,8 @@ ULONG ResTrack_Dx12::hkRelease(ID3D12Resource* This)
 
     _trMutex.lock();
 
-    if (This->AddRef() == 2 && _trackedResources.contains(This))
+    This->AddRef();
+    if (o_Release(This) <= 1 && _trackedResources.contains(This))
     {
         auto vector = &_trackedResources[This];
 
@@ -801,15 +802,17 @@ ULONG ResTrack_Dx12::hkRelease(ID3D12Resource* This)
 
         for (size_t i = 0; i < vector->size(); i++)
         {
-            LOG_TRACK("  Resource: {:X}, Clearing: {:X}", (size_t) This, (size_t) vector->at(i));
-            vector->at(i)->buffer = nullptr;
-            vector->at(i)->lastUsedFrame = 0;
+            // Be sure something else is not using this heap
+            if (vector->at(i)->buffer == This)
+            {
+                LOG_TRACK("  Resource: {:X}, Clearing: {:X}", (size_t) This, (size_t) vector->at(i));
+                vector->at(i)->buffer = nullptr;
+                vector->at(i)->lastUsedFrame = 0;
+            }
         }
 
         _trackedResources.erase(This);
     }
-
-    o_Release(This);
 
     _trMutex.unlock();
 
