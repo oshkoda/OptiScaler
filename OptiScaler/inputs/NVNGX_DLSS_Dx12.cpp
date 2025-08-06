@@ -504,7 +504,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_Shutdown(void)
     // HooksDx::UnHookDx();
 
     if (State::Instance().currentFG != nullptr)
+    {
         State::Instance().currentFG->StopAndDestroyContext(true, true, false);
+        State::Instance().ClearCapturedHudlesses = true;
+    }
 
     shutdown = false;
 
@@ -933,6 +936,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_ReleaseFeature(NVSDK_NGX_Handle* 
     if (State::Instance().currentFG != nullptr)
     {
         State::Instance().currentFG->StopAndDestroyContext(true, false, false);
+        State::Instance().ClearCapturedHudlesses = true;
         Hudfix_Dx12::ResetCounters();
     }
 
@@ -1278,6 +1282,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
                 State::Instance().currentFG->StopAndDestroyContext(false, false, false);
                 Hudfix_Dx12::ResetCounters();
                 State::Instance().FGchanged = true;
+                State::Instance().ClearCapturedHudlesses = true;
             }
 
             if (Dx12Contexts.contains(handleId) && deviceContext->feature != nullptr)
@@ -1499,6 +1504,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
                  fg->IsActive())
         {
             fg->StopAndDestroyContext(State::Instance().SCchanged, false, false);
+            State::Instance().ClearCapturedHudlesses = true;
             Hudfix_Dx12::ResetCounters();
         }
 
