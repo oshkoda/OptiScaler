@@ -24,6 +24,12 @@ typedef enum FGType : uint32_t
     Nukems
 } FGType;
 
+typedef struct CapturedHudlessInfo
+{
+    UINT64 usageCount = 1;
+    bool enabled = true;
+};
+
 class State
 {
   public:
@@ -71,6 +77,9 @@ class State
     bool FGonlyUseCapturedResources = false;
 
     bool FSRFGFTPchanged = false;
+
+    ankerl::unordered_dense::map<void*, CapturedHudlessInfo> CapturedHudlesses;
+    bool ClearCapturedHudlesses = false;
 
     // NVNGX init parameters
     uint64_t NVNGX_ApplicationId = 1337;
