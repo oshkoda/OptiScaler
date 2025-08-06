@@ -14,7 +14,7 @@ class XeSSFeature_Vk : public virtual IFeature_Vk
 
   protected:
     xess_context_handle_t _xessContext = nullptr;
-    
+
     uint32_t _xessInitFlags = 0;
     int dumpCount = 0;
 
