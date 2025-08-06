@@ -69,23 +69,21 @@ feature_version FSRFG_Dx12::Version()
 
 const char* FSRFG_Dx12::Name() { return "FSR-FG"; }
 
-bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, double frameTime)
+bool FSRFG_Dx12::Dispatch()
 {
-    _lastDispatchedFrame = _frameCount;
+    LOG_DEBUG();
 
-    LOG_DEBUG("useHudless: {}, frameTime: {}", useHudless, frameTime);
+    _lastDispatchedFrame = _frameCount;
 
     if (State::Instance().FSRFGFTPchanged)
         ConfigureFramePaceTuning();
 
     auto fIndex = GetIndex();
 
-    _noHudless[fIndex] = !useHudless;
-
     ffxConfigureDescFrameGeneration m_FrameGenerationConfig = {};
     m_FrameGenerationConfig.header.type = FFX_API_CONFIGURE_DESC_TYPE_FRAMEGENERATION;
 
-    if (useHudless && _paramHudless[fIndex] != nullptr)
+    if (!_noHudless[fIndex] && _paramHudless[fIndex] != nullptr)
     {
         LOG_TRACE("Using hudless: {:X}", (size_t) _paramHudless[fIndex]);
         m_FrameGenerationConfig.HUDLessColor =
@@ -223,10 +221,7 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, d
                   fIndex, (size_t) dfgPrepare.commandList);
 
         if (retCode == FFX_API_RETURN_OK)
-        {
-            SetHudlessDispatchReady();
             _commandList[fIndex]->Close();
-        }
     }
 
     if (Config::Instance()->FGUseMutexForSwapchain.value_or_default() && Mutex.getOwner() == 1)
@@ -237,6 +232,7 @@ bool FSRFG_Dx12::Dispatch(ID3D12GraphicsCommandList* cmdList, bool useHudless, d
 
     _mvAndDepthReady[fIndex] = false;
     _hudlessReady[fIndex] = false;
+    _waitingExecute[fIndex] = true;
 
     return retCode == FFX_API_RETURN_OK;
 }

@@ -28,8 +28,8 @@ class IFGFeature
 
     bool _mvAndDepthReady[BUFFER_COUNT] = { false, false, false, false };
     bool _hudlessReady[BUFFER_COUNT] = { false, false, false, false };
-    bool _hudlessDispatchReady[BUFFER_COUNT] = { false, false, false, false };
-    bool _noHudless[BUFFER_COUNT] = { false, false, false, false };
+    bool _noHudless[BUFFER_COUNT] = { true, true, true, true };
+    bool _waitingExecute[BUFFER_COUNT] = { false, false, false, false };
 
     IID streamlineRiid {};
 
@@ -41,23 +41,25 @@ class IFGFeature
     virtual feature_version Version() = 0;
     virtual const char* Name() = 0;
 
-    virtual void Present() = 0;
-
-    virtual void SetUpscaleInputsReady() = 0;
-    virtual void SetHudlessReady() = 0;
-    virtual void SetHudlessDispatchReady() = 0;
-
-    virtual bool UpscalerInputsReady() = 0;
-    virtual bool HudlessReady() = 0;
-    virtual bool ReadyForExecute() = 0;
-
     virtual void ReleaseObjects() = 0;
     virtual void StopAndDestroyContext(bool destroy, bool shutDown, bool useMutex) = 0;
 
+    int GetIndex();
     UINT64 StartNewFrame();
 
+    void SetUpscaleInputsReady();
+    bool UpscalerInputsReady();
+
+    void SetHudlessReady();
+    bool HudlessReady();
+    bool UsingHudless();
+
+    bool WaitingExecution();
+    void SetExecuted();
+
     bool IsActive();
-    int GetIndex();
+    bool IsPaused();
+    bool IsDispatched();
 
     void SetJitter(float x, float y);
     void SetMVScale(float x, float y);

@@ -702,7 +702,7 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
 
             for (size_t i = 0; i < NumCommandLists; i++)
             {
-                LOG_DEBUG("ppCommandLists[{}]: {:X}", i, (size_t) ppCommandLists[i]);
+                LOG_TRACK("ppCommandLists[{}]: {:X}", i, (size_t) ppCommandLists[i]);
 
                 if (!_inputsCmdListFound && _inputsCmdList == ppCommandLists[i])
                 {
@@ -722,7 +722,7 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
             // If there is hudless and both command lists are found
             if (_inputsCmdListFound && _hudlessCmdListFound)
             {
-                LOG_TRACE("NoHudless: {}, _hudlessCmdList: {:X}, _inputsCmdList: {:X}", fg->NoHudless(),
+                LOG_TRACE("UsingHudless: {}, _hudlessCmdList: {:X}, _inputsCmdList: {:X}", fg->UsingHudless(),
                           (size_t) _hudlessCmdList, (size_t) _inputsCmdList);
 
                 std::vector<ID3D12CommandList*> ppCmdLists;
@@ -738,6 +738,8 @@ void ResTrack_Dx12::hkExecuteCommandLists(ID3D12CommandQueue* This, UINT NumComm
                 LOG_DEBUG("Add fg command list: {:X}", (size_t) fgCmdList);
 
                 o_ExecuteCommandLists(This, NumCommandLists + 1, ppCmdLists.data());
+
+                fg->SetExecuted();
 
                 return;
             }
@@ -1521,7 +1523,7 @@ void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
     if (State::Instance().activeFgType == OptiFG && fg != nullptr && fg->IsActive() &&
         (_inputsCommandList[index] != nullptr || _hudlessCommandList[index] != nullptr))
     {
-        LOG_DEBUG("CmdList: {:X}", (size_t) This);
+        LOG_TRACK("CmdList: {:X}", (size_t) This);
 
         if (!fg->HudlessReady())
         {

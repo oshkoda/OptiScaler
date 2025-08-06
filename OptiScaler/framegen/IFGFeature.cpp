@@ -9,12 +9,24 @@ UINT64 IFGFeature::StartNewFrame()
     LOG_FUNC();
     _frameCount++;
     auto fIndex = GetIndex();
+
     _mvAndDepthReady[fIndex] = false;
     _hudlessReady[fIndex] = false;
-    _hudlessDispatchReady[fIndex] = false;
+    _waitingExecute[fIndex] = false;
+    _noHudless[fIndex] = true;
 
     return _frameCount;
 }
+
+bool IFGFeature::WaitingExecution() { return _waitingExecute[GetIndex()]; }
+void IFGFeature::SetExecuted() { _waitingExecute[GetIndex()] = false; }
+
+bool IFGFeature::UpscalerInputsReady() { return _mvAndDepthReady[GetIndex()]; }
+void IFGFeature::SetUpscaleInputsReady() { _mvAndDepthReady[GetIndex()] = true; }
+
+bool IFGFeature::HudlessReady() { return _hudlessReady[GetIndex()]; }
+void IFGFeature::SetHudlessReady() { _hudlessReady[GetIndex()] = true; }
+bool IFGFeature::UsingHudless() { return !_noHudless[GetIndex()]; }
 
 bool IFGFeature::CheckForRealObject(std::string functionName, IUnknown* pObject, IUnknown** ppRealObject)
 {
@@ -39,6 +51,10 @@ bool IFGFeature::CheckForRealObject(std::string functionName, IUnknown* pObject,
 }
 
 bool IFGFeature::IsActive() { return _isActive; }
+
+bool IFGFeature::IsPaused() { return _targetFrame >= _frameCount; }
+
+bool IFGFeature::IsDispatched() { return _lastDispatchedFrame == _frameCount; }
 
 void IFGFeature::SetJitter(float x, float y)
 {

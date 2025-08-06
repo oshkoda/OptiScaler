@@ -252,6 +252,8 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
     auto index = GetIndex();
     LOG_TRACE("Index: {}, Resource: {:X}, CmdList: {:X}", index, (size_t) hudless, (size_t) cmdList);
 
+    _noHudless[index] = false;
+
     if (cmdList == nullptr || !makeCopy)
     {
         _paramHudless[index] = hudless;
@@ -338,20 +340,17 @@ void IFGFeature_Dx12::ReleaseObjects()
 
 ID3D12CommandList* IFGFeature_Dx12::GetCommandList() { return _commandList[GetIndex()]; }
 
-bool IFGFeature_Dx12::NoHudless() { return _noHudless[GetIndex()]; }
-
-void IFGFeature_Dx12::SetUpscaleInputsReady() { _mvAndDepthReady[GetIndex()] = true; }
-
-void IFGFeature_Dx12::SetHudlessReady() { _hudlessReady[GetIndex()] = true; }
-
-void IFGFeature_Dx12::SetHudlessDispatchReady() { _hudlessDispatchReady[GetIndex()] = true; }
-
-void IFGFeature_Dx12::Present() { LOG_FUNC(); }
-
-bool IFGFeature_Dx12::UpscalerInputsReady() { return _mvAndDepthReady[GetIndex()]; }
-bool IFGFeature_Dx12::HudlessReady() { return _hudlessReady[GetIndex()]; }
-bool IFGFeature_Dx12::ReadyForExecute()
+bool IFGFeature_Dx12::ExecuteCommandList(ID3D12CommandQueue* queue)
 {
-    auto fIndex = GetIndex();
-    return _mvAndDepthReady[fIndex] && _hudlessReady[fIndex];
+    LOG_DEBUG();
+
+    if (WaitingExecution())
+    {
+        auto cmdList = GetCommandList();
+        queue->ExecuteCommandLists(1, &cmdList);
+        SetExecuted();
+        return true;
+    }
+
+    return false;
 }

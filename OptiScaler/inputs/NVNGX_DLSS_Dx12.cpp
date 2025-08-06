@@ -1486,9 +1486,8 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     // FG Init || Disable
     if (State::Instance().activeFgType == OptiFG && Config::Instance()->OverlayMenu.value_or_default())
     {
-        if (!State::Instance().FGchanged && Config::Instance()->FGEnabled.value_or_default() &&
-            fg->TargetFrame() < fg->FrameCount() && FfxApiProxy::InitFfxDx12() && !fg->IsActive() &&
-            HooksDx::CurrentSwapchainFormat() != DXGI_FORMAT_UNKNOWN)
+        if (!State::Instance().FGchanged && Config::Instance()->FGEnabled.value_or_default() && !fg->IsPaused() &&
+            FfxApiProxy::InitFfxDx12() && !fg->IsActive() && HooksDx::CurrentSwapchainFormat() != DXGI_FORMAT_UNKNOWN)
         {
             fg->CreateObjects(D3D12Device);
             fg->CreateContext(D3D12Device, deviceContext->feature->GetFeatureFlags(),
@@ -1594,7 +1593,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
     UINT frameIndex;
     if (!State::Instance().isShuttingDown && fg != nullptr && fg->IsActive() &&
         State::Instance().activeFgType == OptiFG && Config::Instance()->OverlayMenu.value_or_default() &&
-        Config::Instance()->FGEnabled.value_or_default() && fg->TargetFrame() < fg->FrameCount() &&
+        Config::Instance()->FGEnabled.value_or_default() && !fg->IsPaused() &&
         State::Instance().currentSwapchain != nullptr)
     {
         // Wait for present
@@ -1708,7 +1707,7 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
         // FG Dispatch
         if (fg != nullptr && fg->IsActive() && State::Instance().activeFgType == OptiFG &&
             Config::Instance()->OverlayMenu.value_or_default() && Config::Instance()->FGEnabled.value_or_default() &&
-            fg->TargetFrame() < fg->FrameCount() && State::Instance().currentSwapchain != nullptr)
+            !fg->IsPaused() && State::Instance().currentSwapchain != nullptr)
         {
             if (Config::Instance()->FGHUDFix.value_or_default())
             {
@@ -1737,7 +1736,10 @@ NVSDK_NGX_API NVSDK_NGX_Result NVSDK_NGX_D3D12_EvaluateFeature(ID3D12GraphicsCom
             {
                 LOG_DEBUG("(FG) running, frame: {0}", deviceContext->feature->FrameCount());
 
-                fg->Dispatch(InCmdList, false, State::Instance().lastFrameTime);
+                if (fg->Dispatch())
+                {
+                    fg->ExecuteCommandList(State::Instance().currentCommandQueue);
+                }
             }
         }
 

@@ -28,12 +28,6 @@
 
 #pragma region FG definitions
 
-// Is FG mutex accuired for Half/Full sync?
-static bool _lockAccuiredForHalfOrFull = false;
-
-// Target frame/present could for releasing the FG mutex
-static UINT64 _releaseMutexTargetFrame = 0;
-
 // To prevent recursive FG swapchain creation
 static bool _skipFGSwapChainCreation = false;
 
@@ -262,40 +256,27 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         }
     }
 
-    auto lockAccuired = false;
     if (willPresent && fg != nullptr && fg->IsActive() &&
         Config::Instance()->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
     {
         LOG_TRACE("Waiting FG->Mutex 2, current: {}", fg->Mutex.getOwner());
         fg->Mutex.lock(2);
-
-        // If half or full sync is active, we need to release the mutex after 1 or 2 frames at Present
-        lockAccuired = !Config::Instance()->FGHudfixHalfSync.value_or_default() &&
-                       !Config::Instance()->FGHudfixFullSync.value_or_default();
-        _lockAccuiredForHalfOrFull = !lockAccuired;
-
-        if (Config::Instance()->FGDebugView.value_or_default() ||
-            Config::Instance()->FGHudfixHalfSync.value_or_default())
-            _releaseMutexTargetFrame = _frameCounter + 1; // For debug 1 frame
-        else
-            _releaseMutexTargetFrame = _frameCounter + 2; // For FG 2 frames
-
-        LOG_TRACE("Accuired FG->Mutex: {}, fgMutexReleaseFrame: {}", fg->Mutex.getOwner(), _releaseMutexTargetFrame);
+        LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
     if (willPresent && State::Instance().currentCommandQueue != nullptr && State::Instance().activeFgType == OptiFG &&
-        fg->IsActive() && fg->TargetFrame() < fg->FrameCount() && fg->LastDispatchedFrame() != fg->FrameCount() &&
-        fg->UpscalerInputsReady())
+        fg->IsActive())
     {
-        State::Instance().fgTrigSource = "Present";
-        fg->Present();
-
-        LOG_DEBUG("Dispatch hudless fg");
-
-        if (fg->Dispatch(nullptr, false, State::Instance().lastFrameTime))
+        if (!fg->IsPaused() && !fg->IsDispatched() && fg->UpscalerInputsReady())
         {
-            auto cmdList = fg->GetCommandList();
-            State::Instance().currentCommandQueue->ExecuteCommandLists(1, &cmdList);
+            LOG_DEBUG("Dispatch FG from present");
+            fg->Dispatch();
+        }
+
+        if (!fg->IsPaused() && fg->WaitingExecution())
+        {
+            LOG_DEBUG("Execute FG commandlist from present");
+            fg->ExecuteCommandList(State::Instance().currentCommandQueue);
         }
     }
 
@@ -311,7 +292,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 
     Hudfix_Dx12::PresentEnd();
 
-    if (lockAccuired && Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
     {
         LOG_TRACE("Releasing FG->Mutex: {}", fg->Mutex.getOwner());
         fg->Mutex.unlockThis(2);
@@ -575,20 +556,6 @@ static HRESULT hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Fla
         LOG_TRACE("4 {}, Present result: {:X}", _frameCounter, (UINT) presentResult);
     else
         LOG_ERROR("4 {:X}", (UINT) presentResult);
-
-    // If Half of Full sync is active or was active (_releaseMutexTargetFrame != 0)
-    if (_releaseMutexTargetFrame != 0 && Config::Instance()->FGUseMutexForSwapchain.value_or_default() &&
-        _frameCounter >= _releaseMutexTargetFrame && fg != nullptr)
-    {
-        if (_lockAccuiredForHalfOrFull)
-        {
-            LOG_TRACE("Releasing FG->Mutex: {}", fg->Mutex.getOwner());
-            fg->Mutex.unlockThis(2);
-            _lockAccuiredForHalfOrFull = false;
-        }
-
-        _releaseMutexTargetFrame = 0;
-    }
 
     LOG_DEBUG("Done");
 
