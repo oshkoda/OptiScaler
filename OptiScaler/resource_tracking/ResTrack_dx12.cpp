@@ -1950,8 +1950,13 @@ void ResTrack_Dx12::SetInputsCmdList(ID3D12GraphicsCommandList* cmdList)
     if (fg != nullptr && fg->IsActive())
     {
         auto index = fg->GetIndex();
-        LOG_DEBUG("_inputsCommandList[{}]: {:X}", index, (size_t) cmdList);
-        _inputsCommandList[index] = cmdList;
+
+        ID3D12GraphicsCommandList* realCmdList = nullptr;
+        if (!CheckForRealObject(__FUNCTION__, cmdList, (IUnknown**) &realCmdList))
+            realCmdList = cmdList;
+
+        LOG_DEBUG("_inputsCommandList[{}]: {:X}", index, (size_t) realCmdList);
+        _inputsCommandList[index] = realCmdList;
     }
 }
 
@@ -1961,7 +1966,14 @@ void ResTrack_Dx12::SetHudlessCmdList(ID3D12GraphicsCommandList* cmdList)
     if (fg != nullptr && fg->IsActive())
     {
         auto index = fg->GetIndex();
-        LOG_DEBUG("_hudlessCommandList[{}]: {:X}", index, (size_t) cmdList);
-        _hudlessCommandList[index] = cmdList;
+
+        ID3D12GraphicsCommandList* realCmdList = nullptr;
+        if (!CheckForRealObject(__FUNCTION__, cmdList, (IUnknown**) &realCmdList))
+            realCmdList = cmdList;
+
+        LOG_DEBUG("_hudlessCommandList[{}]: {:X}", index, (size_t) realCmdList);
+        _hudlessCommandList[index] = realCmdList;
+    }
+}
     }
 }
