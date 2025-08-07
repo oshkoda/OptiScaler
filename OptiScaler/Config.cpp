@@ -99,8 +99,6 @@ bool Config::Reload(std::filesystem::path iniPath)
             FGFPTHybridSpinTime.set_from_config(readInt("OptiFG", "FPTHybridSpinTime"));
             FGFPTAllowWaitForSingleObjectOnFence.set_from_config(readInt("OptiFG", "FPTWaitForSingleObjectOnFence"));
 
-            FGHudfixHalfSync.set_from_config(readBool("OptiFG", "HUDFixHalfSync"));
-            FGHudfixFullSync.set_from_config(readBool("OptiFG", "HUDFixFullSync"));
             FGDontUseSwapchainBuffers.set_from_config(readBool("OptiFG", "HUDFixDontUseSwapchainBuffers"));
             FGRelaxedResolutionCheck.set_from_config(readBool("OptiFG", "HUDFixRelaxedResolutionCheck"));
         }
@@ -686,8 +684,6 @@ bool Config::SaveIni()
         ini.SetValue("OptiFG", "FPTWaitForSingleObjectOnFence",
                      GetBoolValue(Instance()->FGFPTAllowWaitForSingleObjectOnFence.value_for_config()).c_str());
 
-        ini.SetValue("OptiFG", "HUDFixHalfSync", GetBoolValue(Instance()->FGHudfixHalfSync.value_for_config()).c_str());
-        ini.SetValue("OptiFG", "HUDFixFullSync", GetBoolValue(Instance()->FGHudfixFullSync.value_for_config()).c_str());
         ini.SetValue("OptiFG", "HUDFixDontUseSwapchainBuffers",
                      GetBoolValue(Instance()->FGDontUseSwapchainBuffers.value_for_config()).c_str());
         ini.SetValue("OptiFG", "HUDFixRelaxedResolutionCheck",

@@ -152,7 +152,7 @@ DEFINE_NAME_VECTORS(slCommon, "sl.common");
 DEFINE_NAME_VECTORS(xess, "libxess");
 DEFINE_NAME_VECTORS(xessDx11, "libxess_dx11");
 
-DEFINE_NAME_VECTORS(fsr2, "ffx_fsr2_api_x64", "ffx_fsr2_x64");
+DEFINE_NAME_VECTORS(fsr2, "ffx_fsr2_api_x64");
 DEFINE_NAME_VECTORS(fsr2BE, "ffx_fsr2_api_dx12_x64");
 
 DEFINE_NAME_VECTORS(fsr3, "ffx_fsr3upscaler_x64");
