@@ -256,11 +256,13 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         }
     }
 
+    bool mutexUsed = false;
     if (willPresent && fg != nullptr && fg->IsActive() &&
         Config::Instance()->FGUseMutexForSwapchain.value_or_default() && fg->Mutex.getOwner() != 2)
     {
         LOG_TRACE("Waiting FG->Mutex 2, current: {}", fg->Mutex.getOwner());
         fg->Mutex.lock(2);
+        mutexUsed = true;
         LOG_TRACE("Accuired FG->Mutex: {}", fg->Mutex.getOwner());
     }
 
@@ -269,7 +271,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     {
         if (!fg->IsPaused() && !fg->IsDispatched() && fg->UpscalerInputsReady())
         {
-            LOG_DEBUG("Dispatch FG from present");
+            LOG_WARN("Dispatch FG from present");
             fg->Dispatch();
         }
 
@@ -277,7 +279,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 
         if (!fg->IsPaused() && fg->WaitingExecution())
         {
-            LOG_DEBUG("Execute FG commandlist from present");
+            LOG_WARN("Execute FG commandlist from present");
             fg->ExecuteCommandList(State::Instance().currentCommandQueue);
         }
     }
@@ -294,7 +296,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
 
     Hudfix_Dx12::PresentEnd();
 
-    if (Config::Instance()->FGUseMutexForSwapchain.value_or_default())
+    if (mutexUsed)
     {
         LOG_TRACE("Releasing FG->Mutex: {}", fg->Mutex.getOwner());
         fg->Mutex.unlockThis(2);
