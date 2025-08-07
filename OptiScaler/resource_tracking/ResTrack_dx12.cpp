@@ -1582,7 +1582,7 @@ void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12Graph
         {
             LOG_DEBUG("_inputsCmdList: {:X}", (size_t) This);
             _inputsCmdList = This;
-    }
+        }
     }
 
     o_ExecuteBundle(This, pCommandList);
@@ -1975,5 +1975,76 @@ void ResTrack_Dx12::SetHudlessCmdList(ID3D12GraphicsCommandList* cmdList)
         _hudlessCommandList[index] = realCmdList;
     }
 }
+
+void ResTrack_Dx12::ExecuteWaitingCommandLists()
+{
+    auto fg = State::Instance().currentFG;
+    if (fg == nullptr || State::Instance().currentCommandQueue == nullptr)
+        return;
+
+    auto fIndex = fg->GetIndex();
+
+    if (_inputsCommandList[fIndex] != nullptr)
+    {
+        if (_inputsCommandList[fIndex] == _hudlessCommandList[fIndex])
+        {
+            LOG_DEBUG("_inputsCommandList[{}] == _hudlessCommandList[{}], clearing _hudlessCommandList", fIndex,
+                      fIndex);
+            _hudlessCommandList[fIndex] = nullptr;
+        }
+
+        LOG_DEBUG("Closing _inputsCommandList[{}]: {:X}", fIndex, (size_t) _inputsCommandList[fIndex]);
+        _inputsCommandList[fIndex]->Close();
+
+        if (_inputsCommandList[fIndex] != nullptr)
+        {
+            LOG_WARN("_inputsCommandList[fIndex] != nullptr after closing");
+            fg->SetUpscaleInputsReady();
+            _inputsCmdList = _inputsCommandList[fIndex];
+        }
     }
+
+    if (_hudlessCommandList[fIndex] != nullptr)
+    {
+        LOG_DEBUG("Closing _hudlessCommandList[{}]: {:X}", fIndex, (size_t) _hudlessCommandList[fIndex]);
+        _hudlessCommandList[fIndex]->Close();
+
+        if (_hudlessCommandList[fIndex] != nullptr)
+        {
+            LOG_WARN("_hudlessCommandList[fIndex] != nullptr after closing");
+            fg->SetHudlessReady();
+            _hudlessCmdList = _hudlessCommandList[fIndex];
+        }
+    }
+
+    std::vector<ID3D12CommandList*> cmdLists;
+
+    if (_inputsCmdList != nullptr)
+    {
+        LOG_DEBUG("_inputsCmdList: {:X}, will be executed", (size_t) _inputsCmdList);
+        cmdLists.push_back((ID3D12CommandList*) _inputsCmdList);
+    }
+
+    if (_hudlessCmdList != nullptr)
+    {
+        LOG_DEBUG("_hudlessCmdList: {:X}, will be executed", (size_t) _hudlessCmdList);
+        cmdLists.push_back((ID3D12CommandList*) _hudlessCmdList);
+    }
+
+    if (cmdLists.size() > 0)
+    {
+        LOG_DEBUG("Executing {} commandlists", cmdLists.size());
+        State::Instance().currentCommandQueue->ExecuteCommandLists(cmdLists.size(), cmdLists.data());
+    }
+
+    if (fg->WaitingExecution())
+    {
+        LOG_WARN("FG not executed?!");
+        fg->ExecuteCommandList(State::Instance().currentCommandQueue);
+    }
+
+    _inputsCmdList = nullptr;
+    _hudlessCmdList = nullptr;
+    _inputsCommandList[fIndex] = nullptr;
+    _hudlessCommandList[fIndex] = nullptr;
 }

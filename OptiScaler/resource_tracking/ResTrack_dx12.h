@@ -328,4 +328,5 @@ class ResTrack_Dx12
     static void ClearPossibleHudless();
     static void SetInputsCmdList(ID3D12GraphicsCommandList* cmdList);
     static void SetHudlessCmdList(ID3D12GraphicsCommandList* cmdList);
+    static void ExecuteWaitingCommandLists();
 };

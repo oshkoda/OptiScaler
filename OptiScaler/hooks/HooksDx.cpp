@@ -273,6 +273,8 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
             fg->Dispatch();
         }
 
+        // ResTrack_Dx12::ExecuteWaitingCommandLists();
+
         if (!fg->IsPaused() && fg->WaitingExecution())
         {
             LOG_DEBUG("Execute FG commandlist from present");
