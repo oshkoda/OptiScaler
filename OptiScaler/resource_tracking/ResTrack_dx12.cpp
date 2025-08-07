@@ -1560,18 +1560,29 @@ void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12Graph
     }
 
     if (State::Instance().activeFgType == OptiFG && fg != nullptr && fg->IsActive() &&
-        (_inputsCommandList[index] != nullptr || _hudlessCommandList[index] != nullptr))
+        (_inputsCommandList[index] != nullptr || _hudlessCommandList[index] != nullptr || _inputsCmdList != nullptr ||
+         _hudlessCmdList != nullptr))
     {
         if (pCommandList == _hudlessCommandList[index])
         {
-            LOG_DEBUG("Hudless cmdlist[{}]: {:X}", index, (size_t) This);
+            LOG_DEBUG("_hudlessCommandList[{}]: {:X}", index, (size_t) This);
             _hudlessCommandList[index] = This;
+        }
+        else if (pCommandList == _hudlessCmdList)
+        {
+            LOG_DEBUG("_hudlessCmdList: {:X}", (size_t) This);
+            _hudlessCmdList = This;
         }
         else if (pCommandList == _inputsCommandList[index])
         {
-            LOG_DEBUG("Upscaler cmdlist[{}]: {:X}", index, (size_t) This);
+            LOG_DEBUG("_inputsCommandList[{}]: {:X}", index, (size_t) This);
             _inputsCommandList[index] = This;
         }
+        else if (pCommandList == _inputsCmdList)
+        {
+            LOG_DEBUG("_inputsCmdList: {:X}", (size_t) This);
+            _inputsCmdList = This;
+    }
     }
 
     o_ExecuteBundle(This, pCommandList);
