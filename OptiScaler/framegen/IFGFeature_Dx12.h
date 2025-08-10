@@ -64,7 +64,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     void SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* hudless, D3D12_RESOURCE_STATES state,
                     bool makeCopy = false);
 
-    bool ExecuteCommandList(ID3D12CommandQueue* queue);
+    bool ExecuteCommandList();
     ID3D12CommandList* GetCommandList();
 
     IFGFeature_Dx12() = default;

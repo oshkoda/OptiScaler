@@ -280,7 +280,7 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
         if (!fg->IsPaused() && fg->WaitingExecution())
         {
             LOG_WARN("Execute FG commandlist from present");
-            fg->ExecuteCommandList(State::Instance().currentCommandQueue);
+            fg->ExecuteCommandList();
         }
     }
 

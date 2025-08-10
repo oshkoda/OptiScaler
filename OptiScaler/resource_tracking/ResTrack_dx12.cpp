@@ -2040,7 +2040,7 @@ void ResTrack_Dx12::ExecuteWaitingCommandLists()
     if (fg->WaitingExecution())
     {
         LOG_WARN("FG not executed?!");
-        fg->ExecuteCommandList(State::Instance().currentCommandQueue);
+        fg->ExecuteCommandList();
     }
 
     _inputsCmdList = nullptr;

@@ -340,14 +340,14 @@ void IFGFeature_Dx12::ReleaseObjects()
 
 ID3D12CommandList* IFGFeature_Dx12::GetCommandList() { return _commandList[GetIndex()]; }
 
-bool IFGFeature_Dx12::ExecuteCommandList(ID3D12CommandQueue* queue)
+bool IFGFeature_Dx12::ExecuteCommandList()
 {
     LOG_DEBUG();
 
     if (WaitingExecution())
     {
         auto cmdList = GetCommandList();
-        queue->ExecuteCommandLists(1, &cmdList);
+        _gameCommandQueue->ExecuteCommandLists(1, &cmdList);
         SetExecuted();
         return true;
     }
