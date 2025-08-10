@@ -276,7 +276,7 @@ class ResTrack_Dx12
 
     static void hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12GraphicsCommandList* pCommandList);
 
-    static void hkClose(ID3D12GraphicsCommandList* This);
+    static HRESULT hkClose(ID3D12GraphicsCommandList* This);
 
     static void hkCreateRenderTargetView(ID3D12Device* This, ID3D12Resource* pResource,
                                          D3D12_RENDER_TARGET_VIEW_DESC* pDesc,

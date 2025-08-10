@@ -67,7 +67,7 @@ typedef void (*PFN_DrawInstanced)(ID3D12GraphicsCommandList* This, UINT VertexCo
 typedef void (*PFN_Dispatch)(ID3D12GraphicsCommandList* This, UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                              UINT ThreadGroupCountZ);
 typedef void (*PFN_ExecuteBundle)(ID3D12GraphicsCommandList* This, ID3D12GraphicsCommandList* pCommandList);
-typedef void (*PFN_Close)(ID3D12GraphicsCommandList* This);
+typedef HRESULT (*PFN_Close)(ID3D12GraphicsCommandList* This);
 
 typedef void (*PFN_ExecuteCommandLists)(ID3D12CommandQueue* This, UINT NumCommandLists,
                                         ID3D12CommandList* const* ppCommandLists);
@@ -1588,7 +1588,7 @@ void ResTrack_Dx12::hkExecuteBundle(ID3D12GraphicsCommandList* This, ID3D12Graph
     o_ExecuteBundle(This, pCommandList);
 }
 
-void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
+HRESULT ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
 {
     auto fg = State::Instance().currentFG;
     auto index = fg != nullptr ? fg->GetIndex() : 0;
@@ -1634,7 +1634,7 @@ void ResTrack_Dx12::hkClose(ID3D12GraphicsCommandList* This)
         }
     }
 
-    o_Close(This);
+    return o_Close(This);
 }
 
 void ResTrack_Dx12::hkDispatch(ID3D12GraphicsCommandList* This, UINT ThreadGroupCountX, UINT ThreadGroupCountY,
