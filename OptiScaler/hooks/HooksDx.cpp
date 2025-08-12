@@ -269,6 +269,8 @@ static HRESULT hkFGPresent(void* This, UINT SyncInterval, UINT Flags)
     if (willPresent && State::Instance().currentCommandQueue != nullptr && State::Instance().activeFgType == OptiFG &&
         fg->IsActive())
     {
+        fg->Compare();
+
         if (!fg->IsPaused() && !fg->IsDispatched() && fg->UpscalerInputsReady())
         {
             LOG_WARN("Dispatch FG from present");

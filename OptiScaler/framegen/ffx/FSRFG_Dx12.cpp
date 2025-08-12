@@ -88,7 +88,6 @@ bool FSRFG_Dx12::Dispatch()
         LOG_TRACE("Using hudless: {:X}", (size_t) _paramHudless[fIndex]);
         m_FrameGenerationConfig.HUDLessColor =
             ffxApiGetResourceDX12(_paramHudless[fIndex], FFX_API_RESOURCE_STATE_COPY_DEST);
-        _paramHudless[fIndex] = nullptr;
     }
     else
     {

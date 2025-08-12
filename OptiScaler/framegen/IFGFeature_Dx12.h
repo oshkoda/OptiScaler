@@ -5,6 +5,7 @@
 #include <upscalers/IFeature.h>
 
 #include <shaders/resource_flip/RF_Dx12.h>
+#include <shaders/hudless_compare/HC_Dx12.h>
 
 #include <dxgi1_6.h>
 #include <d3d12.h>
@@ -14,6 +15,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
   private:
     std::unique_ptr<RF_Dx12> _mvFlip;
     std::unique_ptr<RF_Dx12> _depthFlip;
+    std::unique_ptr<HC_Dx12> _hudlessCompare;
     ID3D12Device* _device = nullptr;
 
   protected:
@@ -27,6 +29,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
     ID3D12Resource* _paramDepthCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramHudless[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12Resource* _paramHudlessCopy[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
+    D3D12_RESOURCE_STATES _paramHudlessState[BUFFER_COUNT] = {};
 
     ID3D12GraphicsCommandList* _commandList[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
     ID3D12CommandAllocator* _commandAllocators[BUFFER_COUNT] = { nullptr, nullptr, nullptr, nullptr };
@@ -66,6 +69,7 @@ class IFGFeature_Dx12 : public virtual IFGFeature
 
     bool ExecuteCommandList();
     ID3D12CommandList* GetCommandList();
+    void Compare();
 
     IFGFeature_Dx12() = default;
 };

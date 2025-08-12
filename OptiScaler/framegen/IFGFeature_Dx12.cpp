@@ -261,9 +261,15 @@ void IFGFeature_Dx12::SetHudless(ID3D12GraphicsCommandList* cmdList, ID3D12Resou
     }
 
     if (makeCopy && CopyResource(cmdList, hudless, &_paramHudlessCopy[index], state))
+    {
+        _paramHudlessState[index] = D3D12_RESOURCE_STATE_COPY_DEST;
         _paramHudless[index] = _paramHudlessCopy[index];
+    }
     else
+    {
+        _paramHudlessState[index] = state;
         _paramHudless[index] = hudless;
+    }
 }
 
 void IFGFeature_Dx12::CreateObjects(ID3D12Device* InDevice)
@@ -339,6 +345,30 @@ void IFGFeature_Dx12::ReleaseObjects()
 }
 
 ID3D12CommandList* IFGFeature_Dx12::GetCommandList() { return _commandList[GetIndex()]; }
+
+void IFGFeature_Dx12::Compare()
+{
+    if (State::Instance().FGHudlessCompare && IsActive() && !IsPaused())
+    {
+        auto fIndex = GetIndex();
+
+        if (_paramHudless[fIndex] != nullptr)
+        {
+            if (_hudlessCompare.get() == nullptr)
+            {
+                _hudlessCompare = std::make_unique<HC_Dx12>("HudlessCompare", _device);
+            }
+            else
+            {
+                if (_hudlessCompare->IsInit())
+                    _hudlessCompare->Dispatch((IDXGISwapChain3*) _swapChain, _gameCommandQueue, _paramHudless[fIndex],
+                                              _paramHudlessState[fIndex]);
+            }
+        }
+
+        _paramHudless[fIndex] = nullptr;
+    }
+}
 
 bool IFGFeature_Dx12::ExecuteCommandList()
 {

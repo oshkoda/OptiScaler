@@ -2593,6 +2593,10 @@ bool MenuCommon::RenderMenu()
                         if (ImGui::Button("Res##2"))
                             _showHudlessWindow = !_showHudlessWindow;
 
+                        ImGui::Checkbox("Show Detected UI", &State::Instance().FGHudlessCompare);
+                        ShowHelpMarker("Needs hudless texture to compare with final image.\n"
+                                       "UI elements and ONLY UI elements should have a pink tint!");
+
                         ImGui::EndDisabled();
 
                         auto hudExtended = Config::Instance()->FGHUDFixExtended.value_or_default();
