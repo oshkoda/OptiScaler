@@ -179,6 +179,13 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("tll.exe", GameQuirk::DisableDxgiSpoofing),
     QUIRK_ENTRY("tll-l.exe", GameQuirk::DisableDxgiSpoofing),
 
+    // Nioh 2 – The Complete Edition
+    QUIRK_ENTRY("nioh2.exe", GameQuirk::ForceAutoExposure),
+
+    // Warhammer 40,000: Darktide
+    // SL spoof enough to unlock everything DLSS
+    QUIRK_ENTRY("darktide.exe", GameQuirk::DisableDxgiSpoofing),
+
     // SL spoof enough to unlock everything DLSS
     QUIRK_ENTRY("cyberpunk2077.exe", GameQuirk::CyberpunkHudlessStateOverride, GameQuirk::ForceNoOptiFG,
                 GameQuirk::DisableDxgiSpoofing),
@@ -255,7 +262,7 @@ static void printQuirks(flag_set<GameQuirk>& quirks)
         spdlog::info("Quirk: Enabling restore compute signature on AMD/Intel");
     if (quirks & GameQuirk::DisableDxgiSpoofing)
         spdlog::info("Quirk: Dxgi spoofing disabled by default");
-    if (quirks & GameQuirk::DisableDxgiSpoofing)
+    if (quirks & GameQuirk::DisableUseFsrInputValues)
         spdlog::info("Quirk: Disable Use FSR Input Values");
     if (quirks & GameQuirk::DisableOptiXessPipelineCreation)
         spdlog::info("Quirk: Disable custom pipeline creation for XeSS");
