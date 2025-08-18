@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 clear
 
@@ -206,7 +206,7 @@ fi
 # Create uninstaller
 create_uninstaller() {
     cat > "remove_optiscaler.sh" << 'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 clear
 echo " ::::::::  :::::::::  ::::::::::: :::::::::::  ::::::::   ::::::::      :::     :::        :::::::::: :::::::::  "
