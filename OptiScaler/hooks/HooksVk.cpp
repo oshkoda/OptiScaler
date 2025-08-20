@@ -71,7 +71,7 @@ static void hkvkCmdPipelineBarrier(VkCommandBuffer commandBuffer, VkPipelineStag
                                    const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount,
                                    const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
-    if (State::Instance().gameQuirks & GameQuirk::VulkanDLSSBarrierFixup)
+    if (State::Instance().gameQuirks & GameQuirk::VulkanDLSSBarrierFixup && !State::Instance().isRunningOnNvidia)
     {
         // AMD drivers on the cards around RDNA2 didn't treat VK_IMAGE_LAYOUT_UNDEFINED in the same way Nvidia does.
         // Doesn't seem like a bug, just a different way of handling an UB but we need to adjust.
