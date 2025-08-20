@@ -64,30 +64,42 @@ class FfxApiProxy
         if (module != nullptr)
             _dllDx12 = module;
 
-        LOG_DEBUG("Loading amd_fidelityfx_dx12.dll methods");
-
-        if (_dllDx12 == nullptr && Config::Instance()->FfxDx12Path.has_value())
-        {
-            std::filesystem::path libPath(Config::Instance()->FfxDx12Path.value().c_str());
-
-            if (libPath.has_filename())
-                _dllDx12 = KernelBaseProxy::LoadLibraryExW_()(libPath.c_str(), NULL, 0);
-            else
-                _dllDx12 = KernelBaseProxy::LoadLibraryExW_()((libPath / L"amd_fidelityfx_dx12.dll").c_str(), NULL, 0);
-
-            if (_dllDx12 != nullptr)
-            {
-                LOG_INFO("amd_fidelityfx_dx12.dll loaded from {0}",
-                         wstring_to_string(Config::Instance()->FfxDx12Path.value()));
-            }
-        }
-
         if (_dllDx12 == nullptr)
         {
-            _dllDx12 = KernelBaseProxy::LoadLibraryExW_()(L"amd_fidelityfx_dx12.dll", NULL, 0);
+            std::vector<std::wstring> dllNames = { L"amd_fidelityfx_dx12.dll", L"amd_fidelityfx_loader_dx12.dll" };
 
-            if (_dllDx12 != nullptr)
-                LOG_INFO("amd_fidelityfx_dx12.dll loaded from exe folder");
+            for (size_t i = 0; i < dllNames.size(); i++)
+            {
+                LOG_DEBUG("Trying to load {}", wstring_to_string(dllNames[i]));
+
+                if (_dllDx12 == nullptr && Config::Instance()->FfxDx12Path.has_value())
+                {
+                    std::filesystem::path libPath(Config::Instance()->FfxDx12Path.value().c_str());
+
+                    if (libPath.has_filename())
+                        _dllDx12 = KernelBaseProxy::LoadLibraryExW_()(libPath.c_str(), NULL, 0);
+                    else
+                        _dllDx12 = KernelBaseProxy::LoadLibraryExW_()((libPath / dllNames[i]).c_str(), NULL, 0);
+
+                    if (_dllDx12 != nullptr)
+                    {
+                        LOG_INFO("{} loaded from {}", wstring_to_string(dllNames[i]),
+                                 wstring_to_string(Config::Instance()->FfxDx12Path.value()));
+                        break;
+                    }
+                }
+
+                if (_dllDx12 == nullptr)
+                {
+                    _dllDx12 = KernelBaseProxy::LoadLibraryExW_()(dllNames[i].c_str(), NULL, 0);
+
+                    if (_dllDx12 != nullptr)
+                    {
+                        LOG_INFO("{} loaded from exe folder", wstring_to_string(dllNames[i]));
+                        break;
+                    }
+                }
+            }
         }
 
         if (_dllDx12 != nullptr && _D3D12_Configure == nullptr)

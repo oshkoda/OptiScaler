@@ -158,7 +158,7 @@ DEFINE_NAME_VECTORS(fsr2BE, "ffx_fsr2_api_dx12_x64");
 DEFINE_NAME_VECTORS(fsr3, "ffx_fsr3upscaler_x64");
 DEFINE_NAME_VECTORS(fsr3BE, "ffx_backend_dx12_x64");
 
-DEFINE_NAME_VECTORS(ffxDx12, "amd_fidelityfx_dx12");
+DEFINE_NAME_VECTORS(ffxDx12, "amd_fidelityfx_dx12", "amd_fidelityfx_loader_dx12");
 DEFINE_NAME_VECTORS(ffxVk, "amd_fidelityfx_vk");
 
 inline static bool CheckDllName(std::string* dllName, std::vector<std::string>* namesList)
