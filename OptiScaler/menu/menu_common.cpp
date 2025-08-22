@@ -64,7 +64,7 @@ static std::vector<std::string> splashText = { "May the coping commence...",
                                                "Because native rendering is overrated.",
                                                "The more you upscaler, the more you save",
                                                "It's never too late to buy a better GPU",
-                                               "We don't need real pixel where we're going",
+                                               "We don't need real pixels where we're going",
                                                "Did you know that Intel released XeFG for everyone?",
                                                "MFG totally works with Nukem's 100%% no scam",
                                                "Some of those pixels might even be real!",
@@ -72,7 +72,11 @@ static std::vector<std::string> splashText = { "May the coping commence...",
                                                "Even supports \"software\" XeSS!",
                                                "Take RCAS, you might need it",
                                                "Thanks nitec, back to you nitec",
-                                               "<Your funny text goes here>" };
+                                               "Tested and approved by By-U",
+                                               "0.8 was an inside job",
+                                               "<Your funny text goes here>",
+                                               "FSR4 DP4a wenETA, AMD plz",
+                                               "OptiCopers, assemble!" };
 
 void MenuCommon::ShowTooltip(const char* tip)
 {
