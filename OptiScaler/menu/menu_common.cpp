@@ -1858,9 +1858,10 @@ bool MenuCommon::RenderMenu()
         if (windowTitle.empty())
         {
             windowTitle =
-                std::format("{} - {} {} {}", VER_PRODUCT_NAME, State::Instance().GameExe,
+                std::format("{} - {} {} {} {}", VER_PRODUCT_NAME, State::Instance().GameExe,
                             State::Instance().GameName.empty() ? "" : std::format("- {}", State::Instance().GameName),
-                            State::Instance().gameQuirks.count() > 0 ? "(Q)" : "");
+                            State::Instance().gameQuirks.count() > 0 ? "(Q)" : "",
+                            State::Instance().isOptiPatcherSucceed ? "(OP)" : "");
         }
 
         if (ImGui::Begin(windowTitle.c_str(), NULL, flags))

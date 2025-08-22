@@ -208,6 +208,8 @@ void LoadAsiPlugins()
 
                     if (pr)
                     {
+                        State::Instance().isOptiPatcherSucceed = true;
+
                         LOG_INFO("Game patching is successful, disabling spoofing");
 
                         if (!Config::Instance()->DxgiSpoofing.has_value())

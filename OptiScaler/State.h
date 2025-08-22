@@ -48,6 +48,7 @@ class State
     bool NvngxVkInited = false;
 
     flag_set<GameQuirk> gameQuirks;
+    bool isOptiPatcherSucceed = false;
 
     // Reseting on creation of new feature
     std::optional<bool> AutoExposure;
