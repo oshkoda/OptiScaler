@@ -198,6 +198,8 @@ static const QuirkEntry quirkTable[] = {
     QUIRK_ENTRY("minecraft.windows.exe", GameQuirk::KernelBaseHooks),
     QUIRK_ENTRY("prey.exe", GameQuirk::DontUseNTShared, GameQuirk::DisableOptiXessPipelineCreation,
                 GameQuirk::DisableDxgiSpoofing),
+    QUIRK_ENTRY("gwt.exe", GameQuirk::ForceUnrealEngine),
+    QUIRK_ENTRY("hogwartslegacy.exe", GameQuirk::ForceUnrealEngine),
 
     // VULKAN
     // ------
