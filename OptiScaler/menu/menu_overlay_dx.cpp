@@ -430,11 +430,14 @@ static void RenderImGui_DX12(IDXGISwapChain* pSwapChainPlain)
             return;
         }
 
+        DXGI_SWAP_CHAIN_DESC scDesc;
+        pSwapChain->GetDesc(&scDesc);
+
         ImGui_ImplDX12_InitInfo initInfo {};
         initInfo.Device = device;
         initInfo.CommandQueue = (ID3D12CommandQueue*) currentSCCommandQueue;
         initInfo.NumFramesInFlight = NUM_BACK_BUFFERS;
-        initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        initInfo.RTVFormat = scDesc.BufferDesc.Format;
         initInfo.DSVFormat = DXGI_FORMAT_UNKNOWN;
         initInfo.SrvDescriptorHeap = g_pd3dSrvDescHeap;
         initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle,
