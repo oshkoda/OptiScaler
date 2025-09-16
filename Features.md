@@ -8,6 +8,7 @@
 * An [in-game menu](https://github.com/optiscaler/OptiScaler/blob/master/Config.md) for tuning and saving settings on the fly (Shortcut key is **INSERT**)
 * Full integration with [DLSS Enabler](https://www.nexusmods.com/site/mods/757) for DLSS-FG support
 * **RCAS** support with **MAS** (Motion Adaptive Sharpening) for all Dx12 & Dx11 upscalers
+* Optional **SMAA** pre-processing pass to smooth input edges before handing frames to Dx12 & Dx11 upscalers
 * **Output Scaling** option (0.5x to 3.0x) for backends running on Dx12 & Dx11
 * Supports DXGI spoofing (when running as `dxgi.dll`) as Nvidia GPUs (with XeSS detection to enable XMX on Intel Arc cards)
 * Supports Vulkan spoofing (needs to be enabled from `nvngi.ini`) as Nvidia GPUs (not working for Doom Eternal)

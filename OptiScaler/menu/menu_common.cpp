@@ -3392,6 +3392,13 @@ bool MenuCommon::RenderMenu()
                     // RCAS
                     if (State::Instance().api == DX12 || State::Instance().api == DX11)
                     {
+                        if (bool smaa = Config::Instance()->SmaaEnabled.value_or_default();
+                            ImGui::Checkbox("Enable SMAA", &smaa))
+                            Config::Instance()->SmaaEnabled = smaa;
+                        ShowHelpMarker("Applies a SMAA antialiasing pass before the upscaler.");
+
+                        ImGui::Spacing();
+
                         // xess or dlss version >= 2.5.1
                         constexpr feature_version requiredDlssVersion = { 2, 5, 1 };
                         rcasEnabled = (currentBackend == "xess" ||

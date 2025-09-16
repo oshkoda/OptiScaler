@@ -204,6 +204,9 @@ class Config
     CustomOptional<float> MotionThreshold { 0.0f };
     CustomOptional<float> MotionScaleLimit { 10.0f };
 
+    // SMAA
+    CustomOptional<bool> SmaaEnabled { false };
+
     // Sharpness
     CustomOptional<bool> OverrideSharpness { false };
     CustomOptional<float> Sharpness { 0.3f };

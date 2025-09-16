@@ -454,6 +454,14 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="shaders\rcas\RCAS_Common.h" />
     <ClInclude Include="shaders\rcas\RCAS_Dx11.h" />
     <ClInclude Include="shaders\rcas\RCAS_Dx12.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Blend_Shader.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Blend_Shader_Dx11.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Edge_Shader.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Edge_Shader_Dx11.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader.h" />
+    <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader_Dx11.h" />
+    <ClInclude Include="shaders\smaa\SMAA_Dx11.h" />
+    <ClInclude Include="shaders\smaa\SMAA_Dx12.h" />
     <ClInclude Include="State.h" />
     <ClInclude Include="upscalers\xess\XeSSFeature_Dx11on12.h" />
     <ClInclude Include="upscalers\xess\XeSSFeature_Vk.h" />
@@ -556,6 +564,8 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="shaders\output_scaling\OS_Dx12.cpp" />
     <ClCompile Include="shaders\rcas\RCAS_Dx11.cpp" />
     <ClCompile Include="shaders\rcas\RCAS_Dx12.cpp" />
+    <ClCompile Include="shaders\smaa\SMAA_Dx11.cpp" />
+    <ClCompile Include="shaders\smaa\SMAA_Dx12.cpp" />
     <ClCompile Include="upscalers\xess\XeSSFeature_Vk.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="inputs\XeSS_Debug.cpp" />
