@@ -35,4 +35,7 @@ IFeature_Dx12::~IFeature_Dx12()
 
     if (Bias != nullptr && Bias.get() != nullptr)
         Bias.reset();
+
+    if (SMAA != nullptr && SMAA.get() != nullptr)
+        SMAA.reset();
 }

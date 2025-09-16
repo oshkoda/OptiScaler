@@ -312,6 +312,11 @@ bool Config::Reload(std::filesystem::path iniPath)
                 Contrast.set_from_config(std::clamp(setting.value(), -2.0f, 2.0f));
         }
 
+        // SMAA
+        {
+            SmaaEnabled.set_from_config(readBool("SMAA", "Enabled"));
+        }
+
         // Output Scaling
         {
             OutputScalingEnabled.set_from_config(readBool("OutputScaling", "Enabled"));
@@ -846,6 +851,11 @@ bool Config::SaveIni()
         ini.SetValue("CAS", "MotionScaleLimit", GetFloatValue(Instance()->MotionScaleLimit.value_for_config()).c_str());
         ini.SetValue("CAS", "ContrastEnabled", GetBoolValue(Instance()->ContrastEnabled.value_for_config()).c_str());
         ini.SetValue("CAS", "Contrast", GetFloatValue(Instance()->Contrast.value_for_config()).c_str());
+    }
+
+    // SMAA
+    {
+        ini.SetValue("SMAA", "Enabled", GetBoolValue(Instance()->SmaaEnabled.value_for_config()).c_str());
     }
 
     // InitFlags

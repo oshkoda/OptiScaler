@@ -137,6 +137,13 @@ Enabled=auto
 ColorSpaceConversion=auto
 ```
 
+```ini
+[SMAA]
+; Enables SMAA anti-aliasing before the selected upscaler
+; true or false - Default (auto) is false
+Enabled=auto
+```
+
 The `BuildPipelines` parameter allows XeSS pipelines to be built during context creation to prevent stuttering later.
 
 `NetworkModel` is for selecting the network model to be used with XeSS upscaling. **(Currently has no visible effect on the upscaled image)**
@@ -156,6 +163,11 @@ It can be changed from the in-game menu with real-time results.
 ![xess](images/xess.png)
 
 `Dump` option is for debugging purposes, which would dump input and output parameters and textures for XeSS to game folder.
+
+#### SMAA
+When enabled, OptiScaler executes a lightweight SMAA pass on the color buffer before handing it to the selected upscaler.
+This helps smooth jagged edges in games that do not offer post-processing anti-aliasing without changing the chosen upscale
+r or its quality settings. The option can also be toggled from the in-game menu.
 
 ### FSR Settings
 

@@ -76,6 +76,7 @@ bool DLSSFeatureDx11::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContex
 
         OutputScaler = std::make_unique<OS_Dx11>("Output Scaling", InDevice, (TargetWidth() < DisplayWidth()));
         RCAS = std::make_unique<RCAS_Dx11>("RCAS", InDevice);
+        SMAA = std::make_unique<SMAA_Dx11>("SMAA", InDevice);
     }
 
     SetInit(initResult);
@@ -135,6 +136,28 @@ bool DLSSFeatureDx11::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_P
         }
 
         ProcessEvaluateParams(InParameters);
+
+        ID3D11Resource* originalColor = nullptr;
+        bool smaaApplied = false;
+
+        if (Config::Instance()->SmaaEnabled.value_or_default() && SMAA != nullptr && SMAA.get() != nullptr &&
+            SMAA->IsInit())
+        {
+            if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
+                InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
+
+            if (originalColor != nullptr &&
+                SMAA->CreateBufferResources((ID3D11Texture2D*) originalColor) &&
+                SMAA->Dispatch(InDeviceContext, (ID3D11Texture2D*) originalColor))
+            {
+                InParameters->Set(NVSDK_NGX_Parameter_Color, (ID3D11Resource*) SMAA->ProcessedResource());
+                smaaApplied = true;
+            }
+            else if (Config::Instance()->SmaaEnabled.has_value())
+            {
+                Config::Instance()->SmaaEnabled.set_volatile_value(false);
+            }
+        }
 
         ID3D11Resource* paramOutput = nullptr;
         ID3D11Resource* paramMotion = nullptr;
@@ -280,6 +303,9 @@ bool DLSSFeatureDx11::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_P
             if (restoreUAVs[i] != nullptr)
                 InDeviceContext->CSSetUnorderedAccessViews(i, 1, &restoreUAVs[i], 0);
         }
+
+        if (smaaApplied)
+            InParameters->Set(NVSDK_NGX_Parameter_Color, originalColor);
     }
     else
     {

@@ -73,6 +73,7 @@ bool DLSSFeatureDx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* In
     if (initResult)
     {
         RCAS = std::make_unique<RCAS_Dx12>("RCAS", InDevice);
+        SMAA = std::make_unique<SMAA_Dx12>("SMAA", InDevice);
 
         if (!Config::Instance()->OverlayMenu.value_or_default() && (Imgui == nullptr || Imgui.get() == nullptr))
             Imgui = std::make_unique<Menu_Dx12>(Util::GetProcessWindow(), InDevice);
@@ -113,6 +114,27 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
     if (NVNGXProxy::D3D12_EvaluateFeature() != nullptr)
     {
         ProcessEvaluateParams(InParameters);
+
+        ID3D12Resource* originalColor = nullptr;
+        bool smaaApplied = false;
+
+        if (Config::Instance()->SmaaEnabled.value_or_default() && SMAA != nullptr && SMAA.get() != nullptr &&
+            SMAA->IsInit())
+        {
+            if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
+                InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
+
+            if (originalColor != nullptr && SMAA->CreateBufferResources(originalColor) &&
+                SMAA->Dispatch(InCommandList, originalColor))
+            {
+                InParameters->Set(NVSDK_NGX_Parameter_Color, SMAA->ProcessedResource());
+                smaaApplied = true;
+            }
+            else if (Config::Instance()->SmaaEnabled.has_value())
+            {
+                Config::Instance()->SmaaEnabled.set_volatile_value(false);
+            }
+        }
 
         ID3D12Resource* paramOutput = nullptr;
         ID3D12Resource* paramMotion = nullptr;
@@ -251,6 +273,9 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
 
         // set original output texture back
         InParameters->Set(NVSDK_NGX_Parameter_Output, paramOutput);
+
+        if (smaaApplied)
+            InParameters->Set(NVSDK_NGX_Parameter_Color, originalColor);
     }
     else
     {
