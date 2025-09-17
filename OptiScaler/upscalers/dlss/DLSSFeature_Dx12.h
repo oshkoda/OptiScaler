@@ -7,6 +7,11 @@
 class DLSSFeatureDx12 : public DLSSFeature, public IFeature_Dx12
 {
   private:
+    ID3D12Resource* _dlssDebugTexture = nullptr;
+    D3D12_RESOURCE_STATES _dlssDebugState = D3D12_RESOURCE_STATE_COMMON;
+
+    bool EnsureDebugTexture(ID3D12Resource* source);
+    void CopyDebugTexture(ID3D12GraphicsCommandList* commandList, ID3D12Resource* source);
   protected:
   public:
     bool Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,

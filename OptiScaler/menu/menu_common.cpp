@@ -3397,6 +3397,34 @@ bool MenuCommon::RenderMenu()
                             Config::Instance()->SmaaEnabled = smaa;
                         ShowHelpMarker("Applies a SMAA antialiasing pass before the upscaler.");
 
+                        if (State::Instance().api == DX12)
+                        {
+                            if (bool showDebug = Config::Instance()->DebugShowDlssInput.value_or_default();
+                                ImGui::Checkbox("Show DLSS Input", &showDebug))
+                                Config::Instance()->DebugShowDlssInput = showDebug;
+                            ShowHelpMarker("Displays the SMAA-processed color buffer that DLSS receives.");
+
+                            if (Config::Instance()->DebugShowDlssInput.value_or_default())
+                            {
+                                auto previewTexture = DlssInputPreviewTexture();
+                                auto previewSize = DlssInputPreviewSize();
+
+                                if (previewTexture != ImTextureID_Invalid && previewSize.x > 0.0f && previewSize.y > 0.0f)
+                                {
+                                    float maxWidth = 320.0f * Config::Instance()->MenuScale.value_or_default();
+                                    float aspect = previewSize.y / previewSize.x;
+                                    if (aspect <= 0.0f)
+                                        aspect = 1.0f;
+                                    ImVec2 imageSize { maxWidth, maxWidth * aspect };
+                                    ImGui::Image(ImTextureRef(previewTexture), imageSize);
+                                }
+                                else
+                                {
+                                    ImGui::TextDisabled("Preview unavailable.");
+                                }
+                            }
+                        }
+
                         ImGui::Spacing();
 
                         // xess or dlss version >= 2.5.1

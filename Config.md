@@ -142,6 +142,10 @@ ColorSpaceConversion=auto
 ; Enables SMAA anti-aliasing before the selected upscaler
 ; true or false - Default (auto) is false
 Enabled=auto
+
+; Shows the SMAA processed color buffer that is sent to DLSS (DirectX 12)
+; true or false - Default (auto) is false
+DebugShowDlssInput=auto
 ```
 
 The `BuildPipelines` parameter allows XeSS pipelines to be built during context creation to prevent stuttering later.
@@ -168,6 +172,8 @@ It can be changed from the in-game menu with real-time results.
 When enabled, OptiScaler executes a lightweight SMAA pass on the color buffer before handing it to the selected upscaler.
 This helps smooth jagged edges in games that do not offer post-processing anti-aliasing without changing the chosen upscale
 r or its quality settings. The option can also be toggled from the in-game menu.
+
+With `DebugShowDlssInput` you can preview the SMAA processed texture that DLSS receives. The preview appears in the DirectX 12 menu when the toggle is enabled, making it easier to verify that the input buffer looks as expected while tuning SMAA settings.
 
 ### FSR Settings
 

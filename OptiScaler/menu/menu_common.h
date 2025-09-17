@@ -72,6 +72,9 @@ class MenuCommon
     inline static bool _dx12Ready = false;
     inline static bool _vulkanReady = false;
 
+    inline static ImTextureID _dlssInputPreviewTexture = ImTextureID_Invalid;
+    inline static ImVec2 _dlssInputPreviewSize { 0.0f, 0.0f };
+
     inline static void ShowTooltip(const char* tip);
 
     inline static void ShowHelpMarker(const char* tip);
@@ -153,4 +156,13 @@ class MenuCommon
     static void Init(HWND InHwnd, bool isUWP);
     static void Shutdown();
     static void HideMenu();
+
+    static void SetDlssInputPreview(ImTextureID textureId, ImVec2 size)
+    {
+        _dlssInputPreviewTexture = textureId;
+        _dlssInputPreviewSize = size;
+    }
+
+    static ImTextureID DlssInputPreviewTexture() { return _dlssInputPreviewTexture; }
+    static ImVec2 DlssInputPreviewSize() { return _dlssInputPreviewSize; }
 };
