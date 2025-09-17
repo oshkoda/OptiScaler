@@ -183,7 +183,8 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
 
     auto desc = inputColor->GetDesc();
 
-    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_HEAP_PROPERTIES heapProperties(defaultHeapProperties);
     D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
     HRESULT hr = S_OK;
 
@@ -196,14 +197,24 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
 
         if (SUCCEEDED(hr))
         {
-            bool isDefaultHeap = inputHeapProperties.Type == D3D12_HEAP_TYPE_DEFAULT ||
-                                 inputHeapProperties.Type == D3D12_HEAP_TYPE_CUSTOM;
+            bool canUseInputHeap = inputHeapProperties.Type == D3D12_HEAP_TYPE_DEFAULT;
 
-            if (isDefaultHeap)
+            if (canUseInputHeap)
             {
                 heapProperties = inputHeapProperties;
                 heapFlags = inputHeapFlags;
             }
+            else
+            {
+                heapProperties = defaultHeapProperties;
+                heapFlags = D3D12_HEAP_FLAG_NONE;
+            }
+        }
+        else
+        {
+            LOG_ERROR("[{0}] GetHeapProperties error {1:x}", _name, (unsigned int) hr);
+            heapProperties = defaultHeapProperties;
+            heapFlags = D3D12_HEAP_FLAG_NONE;
         }
     }
 
