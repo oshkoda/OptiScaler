@@ -3,13 +3,41 @@
 #include <Config.h>
 #include <pch.h>
 
+namespace
+{
+static DXGI_FORMAT TranslateTypelessFormats(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+        return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case DXGI_FORMAT_R32G32B32_TYPELESS:
+        return DXGI_FORMAT_R32G32B32_FLOAT;
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+        return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+        return DXGI_FORMAT_R10G10B10A2_UINT;
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+        return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case DXGI_FORMAT_R16G16_TYPELESS:
+        return DXGI_FORMAT_R16G16_FLOAT;
+    case DXGI_FORMAT_R32G32_TYPELESS:
+        return DXGI_FORMAT_R32G32_FLOAT;
+    default:
+        return format;
+    }
+}
+} // namespace
+
 bool DLSSFeatureDx12::EnsureDebugTexture(ID3D12Resource* source)
 {
     if (source == nullptr || Device == nullptr)
         return false;
 
     auto sourceDesc = source->GetDesc();
-    DXGI_FORMAT format = MenuDxBase::TranslateTypelessFormats(sourceDesc.Format);
+    DXGI_FORMAT format = TranslateTypelessFormats(sourceDesc.Format);
 
     if (_dlssDebugTexture != nullptr)
     {
