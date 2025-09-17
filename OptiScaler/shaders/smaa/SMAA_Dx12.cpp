@@ -183,15 +183,28 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
 
     auto desc = inputColor->GetDesc();
 
-    D3D12_HEAP_PROPERTIES heapProperties;
-    D3D12_HEAP_FLAGS heapFlags;
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
+    HRESULT hr = S_OK;
 
-    HRESULT hr = inputColor->GetHeapProperties(&heapProperties, &heapFlags);
-
-    if (FAILED(hr))
+    if (inputColor != nullptr)
     {
-        LOG_ERROR("[{0}] GetHeapProperties failed {1:x}", _name, (unsigned int) hr);
-        return false;
+        D3D12_HEAP_PROPERTIES inputHeapProperties = {};
+        D3D12_HEAP_FLAGS inputHeapFlags = D3D12_HEAP_FLAG_NONE;
+
+        hr = inputColor->GetHeapProperties(&inputHeapProperties, &inputHeapFlags);
+
+        if (SUCCEEDED(hr))
+        {
+            bool isDefaultHeap = inputHeapProperties.Type == D3D12_HEAP_TYPE_DEFAULT ||
+                                 inputHeapProperties.Type == D3D12_HEAP_TYPE_CUSTOM;
+
+            if (isDefaultHeap)
+            {
+                heapProperties = inputHeapProperties;
+                heapFlags = inputHeapFlags;
+            }
+        }
     }
 
     auto createTexture = [&](ID3D12Resource** target, DXGI_FORMAT format, D3D12_RESOURCE_STATES& state) -> bool {
