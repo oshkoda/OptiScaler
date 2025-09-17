@@ -206,6 +206,7 @@ class Config
 
     // SMAA
     CustomOptional<bool> SmaaEnabled { false };
+    CustomOptional<bool> DebugShowDlssInput { false };
 
     // Sharpness
     CustomOptional<bool> OverrideSharpness { false };

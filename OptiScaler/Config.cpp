@@ -164,6 +164,7 @@ bool Config::Reload(std::filesystem::path iniPath)
             DLSSFeaturePath.set_from_config(readWString("DLSS", "FeaturePath"));
             NVNGX_DLSS_Library.set_from_config(readWString("DLSS", "NVNGX_DLSS_Path"));
             UseGenericAppIdWithDlss.set_from_config(readBool("DLSS", "UseGenericAppIdWithDlss"));
+            DebugShowDlssInput.set_from_config(readBool("DLSS", "DebugShowDlssInput"));
 
             RenderPresetOverride.set_from_config(readBool("DLSS", "RenderPresetOverride"));
 
@@ -784,6 +785,8 @@ bool Config::SaveIni()
                      GetIntValue(Instance()->RenderPresetUltraPerformance.value_for_config()).c_str());
         ini.SetValue("DLSS", "UseGenericAppIdWithDlss",
                      GetBoolValue(Instance()->UseGenericAppIdWithDlss.value_for_config()).c_str());
+        ini.SetValue("DLSS", "DebugShowDlssInput",
+                     GetBoolValue(Instance()->DebugShowDlssInput.value_for_config()).c_str());
     }
 
     // Nukems

@@ -15,10 +15,15 @@ class Menu_Dx12 : public MenuDxBase
     ID3D12DescriptorHeap* _srvDescHeap = nullptr;
     D3D12_CPU_DESCRIPTOR_HANDLE _renderTargetDescriptor[2] = {};
 
+    bool _dlssPreviewDescriptorAllocated = false;
+    D3D12_CPU_DESCRIPTOR_HANDLE _dlssPreviewSrvCpu {};
+    D3D12_GPU_DESCRIPTOR_HANDLE _dlssPreviewSrvGpu {};
+
     void CreateRenderTarget(const D3D12_RESOURCE_DESC& InDesc);
 
   public:
     bool Render(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* outTexture);
+    void UpdateDlssInputPreview(ID3D12Resource* resource);
 
     Menu_Dx12(HWND handle, ID3D12Device* pDevice);
 

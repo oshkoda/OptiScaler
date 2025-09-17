@@ -196,6 +196,47 @@ bool Menu_Dx12::Render(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* outT
     return true;
 }
 
+void Menu_Dx12::UpdateDlssInputPreview(ID3D12Resource* resource)
+{
+    if (_srvDescHeap == nullptr)
+    {
+        if (_dlssPreviewDescriptorAllocated)
+        {
+            g_pd3dSrvDescHeapAlloc.Free(_dlssPreviewSrvCpu, _dlssPreviewSrvGpu);
+            _dlssPreviewDescriptorAllocated = false;
+        }
+
+        MenuCommon::SetDlssInputPreview(ImTextureID_Invalid, ImVec2(0.0f, 0.0f));
+        return;
+    }
+
+    if (resource == nullptr)
+    {
+        MenuCommon::SetDlssInputPreview(ImTextureID_Invalid, ImVec2(0.0f, 0.0f));
+        return;
+    }
+
+    if (!_dlssPreviewDescriptorAllocated)
+    {
+        g_pd3dSrvDescHeapAlloc.Alloc(&_dlssPreviewSrvCpu, &_dlssPreviewSrvGpu);
+        _dlssPreviewDescriptorAllocated = true;
+    }
+
+    auto desc = resource->GetDesc();
+    DXGI_FORMAT format = TranslateTypelessFormats(desc.Format);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Format = format;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+
+    _device->CreateShaderResourceView(resource, &srvDesc, _dlssPreviewSrvCpu);
+
+    MenuCommon::SetDlssInputPreview(ImTextureID(_dlssPreviewSrvGpu.ptr),
+                                    ImVec2(static_cast<float>(desc.Width), static_cast<float>(desc.Height)));
+}
+
 Menu_Dx12::Menu_Dx12(HWND handle, ID3D12Device* pDevice) : MenuDxBase(handle), _device(pDevice)
 {
     if (Config::Instance()->OverlayMenu.value_or_default())
@@ -251,6 +292,13 @@ Menu_Dx12::~Menu_Dx12()
     // On shutting down don't invalidate device objects
     ImGui_ImplDX12_Shutdown(true, !State::Instance().isShuttingDown);
     MenuCommon::Shutdown();
+
+    if (_dlssPreviewDescriptorAllocated)
+    {
+        g_pd3dSrvDescHeapAlloc.Free(_dlssPreviewSrvCpu, _dlssPreviewSrvGpu);
+        _dlssPreviewDescriptorAllocated = false;
+    }
+    MenuCommon::SetDlssInputPreview(ImTextureID_Invalid, ImVec2(0.0f, 0.0f));
 
     if (_rtvDescHeap)
     {

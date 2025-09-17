@@ -3,6 +3,73 @@
 #include <Config.h>
 #include <pch.h>
 
+bool DLSSFeatureDx12::EnsureDebugTexture(ID3D12Resource* source)
+{
+    if (source == nullptr || Device == nullptr)
+        return false;
+
+    auto sourceDesc = source->GetDesc();
+    DXGI_FORMAT format = MenuDxBase::TranslateTypelessFormats(sourceDesc.Format);
+
+    if (_dlssDebugTexture != nullptr)
+    {
+        auto currentDesc = _dlssDebugTexture->GetDesc();
+        if (currentDesc.Width == sourceDesc.Width && currentDesc.Height == sourceDesc.Height &&
+            currentDesc.Format == format)
+            return true;
+
+        _dlssDebugTexture->Release();
+        _dlssDebugTexture = nullptr;
+    }
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    D3D12_RESOURCE_DESC debugDesc = {};
+    debugDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    debugDesc.Width = sourceDesc.Width;
+    debugDesc.Height = sourceDesc.Height;
+    debugDesc.DepthOrArraySize = 1;
+    debugDesc.MipLevels = 1;
+    debugDesc.Format = format;
+    debugDesc.SampleDesc = sourceDesc.SampleDesc;
+    debugDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    debugDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    auto hr = Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &debugDesc,
+                                              D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                              IID_PPV_ARGS(&_dlssDebugTexture));
+
+    if (FAILED(hr))
+    {
+        LOG_ERROR("Failed to create DLSS debug texture {0:X}", (unsigned int) hr);
+        _dlssDebugTexture = nullptr;
+        return false;
+    }
+
+    _dlssDebugState = D3D12_RESOURCE_STATE_COPY_DEST;
+    return true;
+}
+
+void DLSSFeatureDx12::CopyDebugTexture(ID3D12GraphicsCommandList* commandList, ID3D12Resource* source)
+{
+    if (commandList == nullptr || source == nullptr || _dlssDebugTexture == nullptr)
+        return;
+
+    ResourceBarrier(commandList, source, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+    if (_dlssDebugState != D3D12_RESOURCE_STATE_COPY_DEST)
+        ResourceBarrier(commandList, _dlssDebugTexture, _dlssDebugState, D3D12_RESOURCE_STATE_COPY_DEST);
+
+    commandList->CopyResource(_dlssDebugTexture, source);
+
+    ResourceBarrier(commandList, _dlssDebugTexture, D3D12_RESOURCE_STATE_COPY_DEST,
+                    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    _dlssDebugState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+    ResourceBarrier(commandList, source, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+}
+
 bool DLSSFeatureDx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* InCommandList,
                            NVSDK_NGX_Parameter* InParameters)
 {
@@ -136,6 +203,33 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
             }
         }
 
+        bool debugPreviewRequested = Config::Instance()->DebugShowDlssInput.value_or_default();
+        if (debugPreviewRequested && smaaApplied)
+        {
+            if (EnsureDebugTexture(SMAA->ProcessedResource()))
+            {
+                CopyDebugTexture(InCommandList, SMAA->ProcessedResource());
+
+                if (Imgui != nullptr && Imgui.get() != nullptr)
+                    Imgui->UpdateDlssInputPreview(_dlssDebugTexture);
+            }
+            else if (Imgui != nullptr && Imgui.get() != nullptr)
+            {
+                Imgui->UpdateDlssInputPreview(nullptr);
+            }
+        }
+        else if (Imgui != nullptr && Imgui.get() != nullptr)
+        {
+            Imgui->UpdateDlssInputPreview(nullptr);
+        }
+
+        if ((!debugPreviewRequested || !smaaApplied) && _dlssDebugTexture != nullptr)
+        {
+            _dlssDebugTexture->Release();
+            _dlssDebugTexture = nullptr;
+            _dlssDebugState = D3D12_RESOURCE_STATE_COMMON;
+        }
+
         ID3D12Resource* paramOutput = nullptr;
         ID3D12Resource* paramMotion = nullptr;
         ID3D12Resource* paramDepth = nullptr;
@@ -259,6 +353,7 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
             {
                 if (Imgui->IsHandleDifferent())
                 {
+                    Imgui->UpdateDlssInputPreview(nullptr);
                     Imgui.reset();
                 }
                 else
@@ -317,6 +412,16 @@ DLSSFeatureDx12::~DLSSFeatureDx12()
 {
     if (State::Instance().isShuttingDown)
         return;
+
+    if (_dlssDebugTexture != nullptr)
+    {
+        _dlssDebugTexture->Release();
+        _dlssDebugTexture = nullptr;
+    }
+    _dlssDebugState = D3D12_RESOURCE_STATE_COMMON;
+
+    if (Imgui != nullptr && Imgui.get() != nullptr)
+        Imgui->UpdateDlssInputPreview(nullptr);
 
     if (NVNGXProxy::D3D12_ReleaseFeature() != nullptr && _p_dlssHandle != nullptr)
         NVNGXProxy::D3D12_ReleaseFeature()(_p_dlssHandle);
