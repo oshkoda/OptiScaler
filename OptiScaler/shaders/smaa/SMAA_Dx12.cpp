@@ -184,7 +184,7 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
     auto desc = inputColor->GetDesc();
 
     CD3DX12_HEAP_PROPERTIES defaultHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_HEAP_PROPERTIES heapProperties(defaultHeapProperties);
+    D3D12_HEAP_PROPERTIES heapProperties = defaultHeapProperties;
     D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
     HRESULT hr = S_OK;
 
