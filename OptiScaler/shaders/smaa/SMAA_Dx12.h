@@ -13,8 +13,7 @@ class SMAA_Dx12
         float invResolution[2];
         float padding0[2];
         float threshold;
-        float edgeIntensity;
-        float blendStrength;
+        float sharedFactor;
         float padding1[2];
     };
 
@@ -54,7 +53,7 @@ class SMAA_Dx12
     bool EnsureTextures(ID3D12Resource* inputColor);
     void TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource,
                              D3D12_RESOURCE_STATES& currentState, D3D12_RESOURCE_STATES targetState);
-    void UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height);
+    void UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height, float sharedFactor);
     void PopulateDescriptors(ID3D12Device* device, ID3D12Resource* colorResource);
 
   public:

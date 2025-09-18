@@ -12,8 +12,7 @@ class SMAA_Dx11
         float invResolution[2];
         float padding0[2];
         float threshold;
-        float edgeIntensity;
-        float blendStrength;
+        float sharedFactor;
         float padding1[2];
     };
 

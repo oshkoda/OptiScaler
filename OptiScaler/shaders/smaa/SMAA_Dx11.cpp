@@ -344,8 +344,7 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     constants.invResolution[0] = colorDesc.Width > 0 ? 1.0f / static_cast<float>(colorDesc.Width) : 0.0f;
     constants.invResolution[1] = colorDesc.Height > 0 ? 1.0f / static_cast<float>(colorDesc.Height) : 0.0f;
     constants.threshold = kDefaultThreshold;
-    constants.edgeIntensity = kDefaultEdgeIntensity;
-    constants.blendStrength = kDefaultBlendStrength;
+    constants.sharedFactor = kDefaultEdgeIntensity;
 
     std::memcpy(mapped.pData, &constants, sizeof(Constants));
     context->Unmap(_constantBuffer, 0);
@@ -367,6 +366,25 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     context->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);
     ID3D11ShaderResourceView* nullSrvs[2] = { nullptr, nullptr };
     context->CSSetShaderResources(0, 2, nullSrvs);
+
+    hr = context->Map(_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+    if (FAILED(hr))
+    {
+        LOG_ERROR("[{0}] Map constant buffer failed {1:x}", _name, (unsigned int) hr);
+        LOG_DEBUG("[{0}] Dispatch aborted during constant buffer update", _name);
+        colorSRV->Release();
+        return false;
+    }
+
+    constants = {};
+    constants.invResolution[0] = colorDesc.Width > 0 ? 1.0f / static_cast<float>(colorDesc.Width) : 0.0f;
+    constants.invResolution[1] = colorDesc.Height > 0 ? 1.0f / static_cast<float>(colorDesc.Height) : 0.0f;
+    constants.threshold = kDefaultThreshold;
+    constants.sharedFactor = kDefaultBlendStrength;
+
+    std::memcpy(mapped.pData, &constants, sizeof(Constants));
+    context->Unmap(_constantBuffer, 0);
 
     // Blend weight pass
     ID3D11ShaderResourceView* blendSrvs[2] = { colorSRV, _edgeSRV };
