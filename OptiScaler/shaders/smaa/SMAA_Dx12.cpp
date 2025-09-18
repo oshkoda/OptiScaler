@@ -347,9 +347,10 @@ bool SMAA_Dx12::EnsureLookupTextures(ID3D12GraphicsCommandList* commandList)
         if (*texture == nullptr)
         {
             auto desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);
-            HRESULT hr = _device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-                                                          D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
-                                                          nullptr, IID_PPV_ARGS(texture));
+            CD3DX12_HEAP_PROPERTIES defaultHeapProps(D3D12_HEAP_TYPE_DEFAULT);
+            HRESULT hr = _device->CreateCommittedResource(&defaultHeapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                                          D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                          IID_PPV_ARGS(texture));
 
             if (FAILED(hr))
             {
@@ -365,8 +366,8 @@ bool SMAA_Dx12::EnsureLookupTextures(ID3D12GraphicsCommandList* commandList)
             UINT64 uploadSize = GetRequiredIntermediateSize(*texture, 0, 1);
             auto uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadSize);
 
-            HRESULT hr = _device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-                                                          D3D12_HEAP_FLAG_NONE, &uploadDesc,
+            CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
+            HRESULT hr = _device->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &uploadDesc,
                                                           D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                                           IID_PPV_ARGS(upload));
 
