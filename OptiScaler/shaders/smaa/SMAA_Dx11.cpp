@@ -70,6 +70,15 @@ SMAA_Dx11::SMAA_Dx11(std::string name, ID3D11Device* device) : _name(std::move(n
         return;
 
     _init = EnsureShaders() && EnsureConstantBuffer();
+
+    if (_init)
+    {
+        LOG_INFO("[{0}] SMAA Dx11 initialized (device={1:X})", _name, (size_t) _device);
+    }
+    else
+    {
+        LOG_WARN("[{0}] SMAA Dx11 initialization incomplete (device={1:X})", _name, (size_t) _device);
+    }
 }
 
 bool SMAA_Dx11::EnsureShaders()
@@ -235,7 +244,11 @@ bool SMAA_Dx11::EnsureTextures(ID3D11Texture2D* colorTexture)
     DXGI_FORMAT outputTextureFormat = outputFormat;
 
     if (!SupportsTypedUavStore(_device, outputFormat) && !IsFloatFormat(outputFormat))
+    {
+        LOG_DEBUG("[{0}] EnsureTextures fallback UAV format for {1}x{2}: {3} -> DXGI_FORMAT_R16G16B16A16_FLOAT", _name,
+                  desc.Width, desc.Height, (int) outputFormat);
         outputTextureFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    }
 
     if (!createTexture(&_outputTexture, outputTextureFormat, nullptr, &_outputUAV))
         return false;
@@ -259,14 +272,35 @@ bool SMAA_Dx11::CreateBufferResources(ID3D11Texture2D* colorTexture)
 
 bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTexture)
 {
-    if (!_init || context == nullptr || colorTexture == nullptr)
+    if (!_init)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: not initialized", _name);
         return false;
+    }
+
+    if (context == nullptr)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: context is null", _name);
+        return false;
+    }
+
+    if (colorTexture == nullptr)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: color texture is null", _name);
+        return false;
+    }
 
     if (!CreateBufferResources(colorTexture))
+    {
+        LOG_DEBUG("[{0}] Dispatch aborted: CreateBufferResources failed", _name);
         return false;
+    }
 
     D3D11_TEXTURE2D_DESC colorDesc = {};
     colorTexture->GetDesc(&colorDesc);
+
+    LOG_DEBUG("[{0}] Dispatch begin {1}x{2}, format={3}", _name, colorDesc.Width, colorDesc.Height,
+              (int) colorDesc.Format);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC colorSrvDesc = {};
     colorSrvDesc.Format = ResolveFormat(colorDesc.Format);
@@ -280,6 +314,7 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     if (FAILED(hr))
     {
         LOG_ERROR("[{0}] CreateShaderResourceView (input) failed {1:x}", _name, (unsigned int) hr);
+        LOG_DEBUG("[{0}] Dispatch aborted: CreateShaderResourceView (input) failed", _name);
         return false;
     }
 
@@ -289,6 +324,7 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     if (FAILED(hr))
     {
         LOG_ERROR("[{0}] Map constant buffer failed {1:x}", _name, (unsigned int) hr);
+        LOG_DEBUG("[{0}] Dispatch aborted during constant buffer update", _name);
         colorSRV->Release();
         return false;
     }
@@ -345,6 +381,8 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     context->CSSetShader(nullptr, nullptr, 0);
 
     colorSRV->Release();
+
+    LOG_DEBUG("[{0}] Dispatch complete {1}x{2}", _name, colorDesc.Width, colorDesc.Height);
 
     return true;
 }

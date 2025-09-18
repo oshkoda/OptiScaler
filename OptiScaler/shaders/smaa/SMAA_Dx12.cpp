@@ -77,6 +77,15 @@ SMAA_Dx12::SMAA_Dx12(std::string name, ID3D12Device* device) : _name(std::move(n
                                            sizeof(SMAA_Neighborhood_cso));
 
     _init = pipelinesCreated;
+
+    if (_init)
+    {
+        LOG_INFO("[{0}] SMAA Dx12 initialized (device={1:X})", _name, (size_t) _device);
+    }
+    else
+    {
+        LOG_WARN("[{0}] SMAA Dx12 initialization incomplete (device={1:X})", _name, (size_t) _device);
+    }
 }
 
 bool SMAA_Dx12::CreateRootSignature()
@@ -291,7 +300,11 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
     DXGI_FORMAT outputTextureFormat = outputFormat;
 
     if (!SupportsTypedUavStore(_device, outputFormat) && !IsFloatFormat(outputFormat))
+    {
+        LOG_DEBUG("[{0}] EnsureTextures fallback UAV format for {1}x{2}: {3} -> DXGI_FORMAT_R16G16B16A16_FLOAT", _name,
+                  static_cast<unsigned long long>(desc.Width), desc.Height, (int) outputFormat);
         outputTextureFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    }
 
     _outputTextureFormat = outputTextureFormat;
 
@@ -386,17 +399,37 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* colorResource)
 
 bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource* colorResource)
 {
-    if (!_init || commandList == nullptr || colorResource == nullptr)
+    if (!_init)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: not initialized", _name);
         return false;
+    }
+
+    if (commandList == nullptr)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: command list is null", _name);
+        return false;
+    }
+
+    if (colorResource == nullptr)
+    {
+        LOG_DEBUG("[{0}] Dispatch skipped: color resource is null", _name);
+        return false;
+    }
 
     if (!CreateBufferResources(colorResource))
+    {
+        LOG_DEBUG("[{0}] Dispatch aborted: CreateBufferResources failed", _name);
         return false;
+    }
 
     auto desc = colorResource->GetDesc();
     UINT width = static_cast<UINT>(desc.Width);
     UINT height = desc.Height;
     UINT dispatchX = (width + 7) / 8;
     UINT dispatchY = (height + 7) / 8;
+
+    LOG_DEBUG("[{0}] Dispatch begin {1}x{2}, format={3}", _name, width, height, (int) desc.Format);
 
     ID3D12DescriptorHeap* heap = nullptr;
 
@@ -445,6 +478,8 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     commandList->Dispatch(dispatchX, dispatchY, 1);
 
     TransitionResource(commandList, _outputTexture, _outputState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    LOG_DEBUG("[{0}] Dispatch complete {1}x{2}", _name, width, height);
 
     return true;
 }

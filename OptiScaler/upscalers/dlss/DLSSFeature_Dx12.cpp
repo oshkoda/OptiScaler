@@ -213,22 +213,61 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
         ID3D12Resource* originalColor = nullptr;
         bool smaaApplied = false;
 
-        if (Config::Instance()->SmaaEnabled.value_or_default() && SMAA != nullptr && SMAA.get() != nullptr &&
-            SMAA->IsInit())
+        bool smaaEnabled = Config::Instance()->SmaaEnabled.value_or_default();
+        bool smaaInit = SMAA != nullptr && SMAA.get() != nullptr && SMAA->IsInit();
+
+        LOG_DEBUG("[DLSS Dx12] SMAA evaluation request: enabled={}, instanceInit={}", smaaEnabled, smaaInit);
+
+        if (smaaEnabled && smaaInit)
         {
             if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
                 InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
 
-            if (originalColor != nullptr && SMAA->CreateBufferResources(originalColor) &&
-                SMAA->Dispatch(InCommandList, originalColor))
+            LOG_DEBUG("[DLSS Dx12] SMAA original color resource={:X}", (size_t) originalColor);
+
+            if (originalColor != nullptr)
             {
-                InParameters->Set(NVSDK_NGX_Parameter_Color, SMAA->ProcessedResource());
-                smaaApplied = true;
+                auto colorDesc = originalColor->GetDesc();
+
+                bool buffersReady = SMAA->CreateBufferResources(originalColor);
+                LOG_DEBUG("[DLSS Dx12] SMAA CreateBufferResources {} for {}x{} format={}",
+                          buffersReady ? "succeeded" : "failed", (UINT) colorDesc.Width, colorDesc.Height,
+                          (int) colorDesc.Format);
+
+                if (buffersReady)
+                {
+                    bool dispatchOk = SMAA->Dispatch(InCommandList, originalColor);
+                    LOG_DEBUG("[DLSS Dx12] SMAA Dispatch {} for {}x{} format={}", dispatchOk ? "succeeded" : "failed",
+                              (UINT) colorDesc.Width, colorDesc.Height, (int) colorDesc.Format);
+
+                    if (dispatchOk)
+                    {
+                        InParameters->Set(NVSDK_NGX_Parameter_Color, SMAA->ProcessedResource());
+                        LOG_INFO("[DLSS Dx12] SMAA output bound to DLSS color ({}x{}, format={})",
+                                 (UINT) colorDesc.Width, colorDesc.Height, (int) colorDesc.Format);
+                        smaaApplied = true;
+                    }
+                }
             }
-            else if (Config::Instance()->SmaaEnabled.has_value())
+            else
             {
+                LOG_DEBUG("[DLSS Dx12] SMAA skipped: original color resource is null");
+            }
+
+            if (!smaaApplied && Config::Instance()->SmaaEnabled.has_value())
+            {
+                LOG_INFO("[DLSS Dx12] Disabling SMAA override after failed attempt (resource={:X})",
+                         (size_t) originalColor);
                 Config::Instance()->SmaaEnabled.set_volatile_value(false);
             }
+        }
+        else if (!smaaEnabled)
+        {
+            LOG_DEBUG("[DLSS Dx12] SMAA skipped: configuration disabled");
+        }
+        else if (!smaaInit)
+        {
+            LOG_DEBUG("[DLSS Dx12] SMAA skipped: instance not initialized");
         }
 
         bool debugPreviewRequested = Config::Instance()->DebugShowDlssInput.value_or_default();
@@ -398,7 +437,10 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
         InParameters->Set(NVSDK_NGX_Parameter_Output, paramOutput);
 
         if (smaaApplied)
+        {
             InParameters->Set(NVSDK_NGX_Parameter_Color, originalColor);
+            LOG_DEBUG("[DLSS Dx12] Restored original DLSS color resource {:X}", (size_t) originalColor);
+        }
     }
     else
     {
