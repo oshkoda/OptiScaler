@@ -6,6 +6,7 @@
 
 #include <cstring>
 #include <d3d11_1.h>
+#include <limits>
 
 namespace
 {
@@ -60,7 +61,8 @@ bool SupportsTypedUavStore(ID3D11Device* device, DXGI_FORMAT format)
     return (formatSupport2.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
 }
 
-constexpr float kDefaultThreshold = 0.075f;
+constexpr float kDefaultThreshold = std::numeric_limits<float>::epsilon();
+constexpr float kDefaultEdgeIntensity = 1.0f;
 constexpr float kDefaultBlendStrength = 0.6f;
 } // namespace
 
@@ -120,7 +122,16 @@ bool SMAA_Dx11::EnsureShaders()
 bool SMAA_Dx11::EnsureConstantBuffer()
 {
     if (_constantBuffer != nullptr)
-        return true;
+    {
+        D3D11_BUFFER_DESC existingDesc = {};
+        _constantBuffer->GetDesc(&existingDesc);
+
+        if (existingDesc.ByteWidth == sizeof(Constants))
+            return true;
+
+        _constantBuffer->Release();
+        _constantBuffer = nullptr;
+    }
 
     if (_device == nullptr)
         return false;
@@ -330,9 +341,10 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     }
 
     Constants constants = {};
-    constants.invWidth = colorDesc.Width > 0 ? 1.0f / static_cast<float>(colorDesc.Width) : 0.0f;
-    constants.invHeight = colorDesc.Height > 0 ? 1.0f / static_cast<float>(colorDesc.Height) : 0.0f;
+    constants.invResolution[0] = colorDesc.Width > 0 ? 1.0f / static_cast<float>(colorDesc.Width) : 0.0f;
+    constants.invResolution[1] = colorDesc.Height > 0 ? 1.0f / static_cast<float>(colorDesc.Height) : 0.0f;
     constants.threshold = kDefaultThreshold;
+    constants.edgeIntensity = kDefaultEdgeIntensity;
     constants.blendStrength = kDefaultBlendStrength;
 
     std::memcpy(mapped.pData, &constants, sizeof(Constants));
