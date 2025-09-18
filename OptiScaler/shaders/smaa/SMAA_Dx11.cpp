@@ -5,6 +5,7 @@
 #include "precompile/SMAA_Neighborhood_Shader_Dx11.h"
 
 #include <cstring>
+#include <d3d11_1.h>
 
 namespace
 {
@@ -47,13 +48,16 @@ bool SupportsTypedUavStore(ID3D11Device* device, DXGI_FORMAT format)
     if (device == nullptr || format == DXGI_FORMAT_UNKNOWN)
         return false;
 
-    UINT formatSupport = 0;
-    HRESULT hr = device->CheckFormatSupport(format, &formatSupport);
+    D3D11_FEATURE_DATA_FORMAT_SUPPORT2 formatSupport2 = {};
+    formatSupport2.InFormat = format;
+
+    HRESULT hr = device->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT2, &formatSupport2,
+                                             sizeof(formatSupport2));
 
     if (FAILED(hr))
         return false;
 
-    return (formatSupport & D3D11_FORMAT_SUPPORT_UAV_TYPED_STORE) != 0;
+    return (formatSupport2.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
 }
 
 constexpr float kDefaultThreshold = 0.075f;
