@@ -29,6 +29,33 @@ DXGI_FORMAT ResolveFormat(DXGI_FORMAT format)
     }
 }
 
+bool IsFloatFormat(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool SupportsTypedUavStore(ID3D11Device* device, DXGI_FORMAT format)
+{
+    if (device == nullptr || format == DXGI_FORMAT_UNKNOWN)
+        return false;
+
+    UINT formatSupport = 0;
+    HRESULT hr = device->CheckFormatSupport(format, &formatSupport);
+
+    if (FAILED(hr))
+        return false;
+
+    return (formatSupport & D3D11_FORMAT_SUPPORT_UAV_TYPED_STORE) != 0;
+}
+
 constexpr float kDefaultThreshold = 0.075f;
 constexpr float kDefaultBlendStrength = 0.6f;
 } // namespace
@@ -201,7 +228,12 @@ bool SMAA_Dx11::EnsureTextures(ID3D11Texture2D* colorTexture)
         return false;
 
     DXGI_FORMAT outputFormat = ResolveFormat(desc.Format);
-    if (!createTexture(&_outputTexture, outputFormat, nullptr, &_outputUAV))
+    DXGI_FORMAT outputTextureFormat = outputFormat;
+
+    if (!SupportsTypedUavStore(_device, outputFormat) && !IsFloatFormat(outputFormat))
+        outputTextureFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    if (!createTexture(&_outputTexture, outputTextureFormat, nullptr, &_outputUAV))
         return false;
 
     return true;

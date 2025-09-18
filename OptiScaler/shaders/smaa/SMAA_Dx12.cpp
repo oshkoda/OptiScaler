@@ -28,6 +28,35 @@ DXGI_FORMAT ResolveFormat(DXGI_FORMAT format)
     }
 }
 
+bool IsFloatFormat(DXGI_FORMAT format)
+{
+    switch (format)
+    {
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool SupportsTypedUavStore(ID3D12Device* device, DXGI_FORMAT format)
+{
+    if (device == nullptr || format == DXGI_FORMAT_UNKNOWN)
+        return false;
+
+    D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = {};
+    formatSupport.Format = format;
+
+    HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
+
+    if (FAILED(hr))
+        return false;
+
+    return (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
+}
+
 constexpr float kDefaultThreshold = 0.075f;
 constexpr float kDefaultBlendStrength = 0.6f;
 } // namespace
@@ -259,7 +288,14 @@ bool SMAA_Dx12::EnsureTextures(ID3D12Resource* inputColor)
         return false;
 
     DXGI_FORMAT outputFormat = ResolveFormat(desc.Format);
-    if (!createTexture(&_outputTexture, outputFormat, _outputState))
+    DXGI_FORMAT outputTextureFormat = outputFormat;
+
+    if (!SupportsTypedUavStore(_device, outputFormat) && !IsFloatFormat(outputFormat))
+        outputTextureFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+    _outputTextureFormat = outputTextureFormat;
+
+    if (!createTexture(&_outputTexture, outputTextureFormat, _outputState))
         return false;
 
     return true;
@@ -293,6 +329,9 @@ void SMAA_Dx12::PopulateDescriptors(ID3D12Device* device, ID3D12Resource* colorR
     auto colorDesc = colorResource->GetDesc();
     DXGI_FORMAT colorFormat = ResolveFormat(colorDesc.Format);
 
+    if (_outputTextureFormat == DXGI_FORMAT_UNKNOWN)
+        _outputTextureFormat = colorFormat;
+
     D3D12_SHADER_RESOURCE_VIEW_DESC colorSrvDesc = {};
     colorSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     colorSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -307,7 +346,7 @@ void SMAA_Dx12::PopulateDescriptors(ID3D12Device* device, ID3D12Resource* colorR
     edgeUavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC outputUavDesc = {};
-    outputUavDesc.Format = colorFormat;
+    outputUavDesc.Format = _outputTextureFormat;
     outputUavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
     // Edge detection pass descriptors

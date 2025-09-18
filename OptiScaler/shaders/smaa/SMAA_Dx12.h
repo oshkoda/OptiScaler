@@ -40,6 +40,8 @@ class SMAA_Dx12
     ID3D12Resource* _blendTexture = nullptr;
     ID3D12Resource* _outputTexture = nullptr;
 
+    DXGI_FORMAT _outputTextureFormat = DXGI_FORMAT_UNKNOWN;
+
     D3D12_RESOURCE_STATES _edgeState = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES _blendState = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES _outputState = D3D12_RESOURCE_STATE_COMMON;
@@ -64,6 +66,7 @@ class SMAA_Dx12
     bool Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource* colorResource);
 
     ID3D12Resource* ProcessedResource() const { return _outputTexture; }
+    DXGI_FORMAT OutputTextureFormat() const { return _outputTextureFormat; }
 
     ~SMAA_Dx12();
 };
