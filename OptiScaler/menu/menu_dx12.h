@@ -3,6 +3,8 @@
 #include "menu_dx_base.h"
 #include <d3d12.h>
 
+struct DescriptorHeapAllocator;
+
 class Menu_Dx12 : public MenuDxBase
 {
   private:
@@ -18,6 +20,7 @@ class Menu_Dx12 : public MenuDxBase
     bool _dlssPreviewDescriptorAllocated = false;
     D3D12_CPU_DESCRIPTOR_HANDLE _dlssPreviewSrvCpu {};
     D3D12_GPU_DESCRIPTOR_HANDLE _dlssPreviewSrvGpu {};
+    DescriptorHeapAllocator* _dlssPreviewAllocator = nullptr;
 
     bool EnsurePreviewDescriptors();
     void CreateRenderTarget(const D3D12_RESOURCE_DESC& InDesc);

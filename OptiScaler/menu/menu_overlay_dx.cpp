@@ -645,3 +645,13 @@ void MenuOverlayDx::Present(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT 
     if (device12 != nullptr)
         device12->Release();
 }
+
+ID3D12DescriptorHeap* MenuOverlayDx::SrvDescriptorHeap() { return g_pd3dSrvDescHeap; }
+
+DescriptorHeapAllocator* MenuOverlayDx::SrvDescriptorAllocator()
+{
+    if (g_pd3dSrvDescHeapAlloc.Heap == nullptr || g_pd3dSrvDescHeap == nullptr)
+        return nullptr;
+
+    return &g_pd3dSrvDescHeapAlloc;
+}
