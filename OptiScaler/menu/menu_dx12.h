@@ -19,6 +19,7 @@ class Menu_Dx12 : public MenuDxBase
     D3D12_CPU_DESCRIPTOR_HANDLE _dlssPreviewSrvCpu {};
     D3D12_GPU_DESCRIPTOR_HANDLE _dlssPreviewSrvGpu {};
 
+    bool EnsurePreviewDescriptors();
     void CreateRenderTarget(const D3D12_RESOURCE_DESC& InDesc);
 
   public:
