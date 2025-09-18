@@ -327,13 +327,14 @@ void SMAA_Dx12::TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D1
     currentState = targetState;
 }
 
-void SMAA_Dx12::UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height)
+void SMAA_Dx12::UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height,
+                                float sharedFactor)
 {
+    _constants = {};
     _constants.invResolution[0] = width > 0 ? 1.0f / static_cast<float>(width) : 0.0f;
     _constants.invResolution[1] = height > 0 ? 1.0f / static_cast<float>(height) : 0.0f;
     _constants.threshold = kDefaultThreshold;
-    _constants.edgeIntensity = kDefaultEdgeIntensity;
-    _constants.blendStrength = kDefaultBlendStrength;
+    _constants.sharedFactor = sharedFactor;
 
     commandList->SetComputeRoot32BitConstants(3, sizeof(Constants) / sizeof(uint32_t), &_constants, 0);
 }
@@ -436,8 +437,6 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
 
     commandList->SetComputeRootSignature(_rootSignature);
 
-    UpdateConstants(commandList, width, height);
-
     // Edge detection
     heap = _descriptorHeaps[0];
     commandList->SetDescriptorHeaps(1, &heap);
@@ -446,6 +445,8 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     commandList->SetComputeRootDescriptorTable(2, _gpuUavHandles[0]);
 
     TransitionResource(commandList, _edgeTexture, _edgeState, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    UpdateConstants(commandList, width, height, kDefaultEdgeIntensity);
 
     commandList->SetPipelineState(_edgePipeline);
     commandList->Dispatch(dispatchX, dispatchY, 1);
@@ -461,6 +462,8 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
 
     TransitionResource(commandList, _blendTexture, _blendState, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
+    UpdateConstants(commandList, width, height, kDefaultBlendStrength);
+
     commandList->SetPipelineState(_blendPipeline);
     commandList->Dispatch(dispatchX, dispatchY, 1);
 
@@ -474,6 +477,8 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     commandList->SetComputeRootDescriptorTable(2, _gpuUavHandles[2]);
 
     TransitionResource(commandList, _outputTexture, _outputState, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    UpdateConstants(commandList, width, height, kDefaultBlendStrength);
 
     commandList->SetPipelineState(_neighborhoodPipeline);
     commandList->Dispatch(dispatchX, dispatchY, 1);
