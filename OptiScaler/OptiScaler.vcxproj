@@ -460,6 +460,8 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="shaders\smaa\precompile\SMAA_Edge_Shader_Dx11.h" />
     <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader.h" />
     <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader_Dx11.h" />
+    <ClInclude Include="shaders\smaa\AreaTex.h" />
+    <ClInclude Include="shaders\smaa\SearchTex.h" />
     <ClInclude Include="shaders\smaa\SMAA_Dx11.h" />
     <ClInclude Include="shaders\smaa\SMAA_Dx12.h" />
     <ClInclude Include="State.h" />

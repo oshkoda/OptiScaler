@@ -31,12 +31,20 @@ class SMAA_Dx11
     ID3D11Texture2D* _edgeTexture = nullptr;
     ID3D11Texture2D* _blendTexture = nullptr;
     ID3D11Texture2D* _outputTexture = nullptr;
+    ID3D11Texture2D* _areaTexture = nullptr;
+    ID3D11Texture2D* _searchTexture = nullptr;
 
     ID3D11ShaderResourceView* _edgeSRV = nullptr;
     ID3D11UnorderedAccessView* _edgeUAV = nullptr;
 
     ID3D11ShaderResourceView* _blendSRV = nullptr;
     ID3D11UnorderedAccessView* _blendUAV = nullptr;
+
+    ID3D11ShaderResourceView* _areaSRV = nullptr;
+    ID3D11ShaderResourceView* _searchSRV = nullptr;
+
+    ID3D11SamplerState* _linearSampler = nullptr;
+    ID3D11SamplerState* _pointSampler = nullptr;
 
     ID3D11UnorderedAccessView* _outputUAV = nullptr;
 
@@ -45,6 +53,8 @@ class SMAA_Dx11
     bool EnsureShaders();
     bool EnsureTextures(ID3D11Texture2D* colorTexture);
     bool EnsureConstantBuffer();
+    bool EnsureLookupTextures();
+    bool EnsureSamplers();
     DXGI_FORMAT ResolveFormat(DXGI_FORMAT format) const;
 
   public:

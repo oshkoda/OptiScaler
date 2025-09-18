@@ -29,21 +29,27 @@ class SMAA_Dx12
     ID3D12PipelineState* _neighborhoodPipeline = nullptr;
 
     ID3D12DescriptorHeap* _descriptorHeaps[3] = { nullptr, nullptr, nullptr };
-    D3D12_CPU_DESCRIPTOR_HANDLE _cpuSrvHandles[3][2] = {};
+    D3D12_CPU_DESCRIPTOR_HANDLE _cpuSrvHandles[3][4] = {};
     D3D12_CPU_DESCRIPTOR_HANDLE _cpuUavHandles[3] = {};
-    D3D12_GPU_DESCRIPTOR_HANDLE _gpuSrvHandles[3][2] = {};
+    D3D12_GPU_DESCRIPTOR_HANDLE _gpuSrvHandles[3][4] = {};
     D3D12_GPU_DESCRIPTOR_HANDLE _gpuUavHandles[3] = {};
     UINT _descriptorSize = 0;
 
     ID3D12Resource* _edgeTexture = nullptr;
     ID3D12Resource* _blendTexture = nullptr;
     ID3D12Resource* _outputTexture = nullptr;
+    ID3D12Resource* _areaTexture = nullptr;
+    ID3D12Resource* _searchTexture = nullptr;
+    ID3D12Resource* _areaUpload = nullptr;
+    ID3D12Resource* _searchUpload = nullptr;
 
     DXGI_FORMAT _outputTextureFormat = DXGI_FORMAT_UNKNOWN;
 
     D3D12_RESOURCE_STATES _edgeState = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES _blendState = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES _outputState = D3D12_RESOURCE_STATE_COMMON;
+    D3D12_RESOURCE_STATES _areaState = D3D12_RESOURCE_STATE_COMMON;
+    D3D12_RESOURCE_STATES _searchState = D3D12_RESOURCE_STATE_COMMON;
 
     Constants _constants {};
 
@@ -51,6 +57,7 @@ class SMAA_Dx12
     bool CreatePipeline(ID3D12PipelineState** pipeline, const unsigned char* shaderData, size_t shaderSize);
     bool EnsureDescriptorHeap(int passIndex);
     bool EnsureTextures(ID3D12Resource* inputColor);
+    bool EnsureLookupTextures(ID3D12GraphicsCommandList* commandList);
     void TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource,
                              D3D12_RESOURCE_STATES& currentState, D3D12_RESOURCE_STATES targetState);
     void UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height, float sharedFactor);

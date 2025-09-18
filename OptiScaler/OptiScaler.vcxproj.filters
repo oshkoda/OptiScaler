@@ -311,6 +311,12 @@
     <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader_Dx11.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="shaders\smaa\AreaTex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\smaa\SearchTex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="shaders\smaa\SMAA_Dx11.h">
       <Filter>Header Files</Filter>
     </ClInclude>

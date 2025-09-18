@@ -3,6 +3,8 @@
 #include "precompile/SMAA_Edge_Shader_Dx11.h"
 #include "precompile/SMAA_Blend_Shader_Dx11.h"
 #include "precompile/SMAA_Neighborhood_Shader_Dx11.h"
+#include "AreaTex.h"
+#include "SearchTex.h"
 
 #include <cstring>
 #include <d3d11_1.h>
@@ -71,7 +73,7 @@ SMAA_Dx11::SMAA_Dx11(std::string name, ID3D11Device* device) : _name(std::move(n
     if (_device == nullptr)
         return;
 
-    _init = EnsureShaders() && EnsureConstantBuffer();
+    _init = EnsureShaders() && EnsureConstantBuffer() && EnsureLookupTextures() && EnsureSamplers();
 
     if (_init)
     {
@@ -148,6 +150,119 @@ bool SMAA_Dx11::EnsureConstantBuffer()
     {
         LOG_ERROR("[{0}] CreateBuffer (constants) failed {1:x}", _name, (unsigned int) hr);
         return false;
+    }
+
+    return true;
+}
+
+bool SMAA_Dx11::EnsureLookupTextures()
+{
+    if (_device == nullptr)
+        return false;
+
+    auto createLookupTexture = [&](ID3D11Texture2D** texture, ID3D11ShaderResourceView** srv, DXGI_FORMAT format,
+                                   UINT width, UINT height, UINT pitch, const void* data) -> bool {
+        if (texture != nullptr && *texture != nullptr && srv != nullptr && *srv != nullptr)
+            return true;
+
+        if (texture != nullptr && *texture != nullptr)
+        {
+            (*texture)->Release();
+            *texture = nullptr;
+        }
+
+        if (srv != nullptr && *srv != nullptr)
+        {
+            (*srv)->Release();
+            *srv = nullptr;
+        }
+
+        D3D11_TEXTURE2D_DESC desc = {};
+        desc.Width = width;
+        desc.Height = height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = format;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+        D3D11_SUBRESOURCE_DATA initData = {};
+        initData.pSysMem = data;
+        initData.SysMemPitch = pitch;
+
+        HRESULT hr = _device->CreateTexture2D(&desc, &initData, texture);
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] CreateTexture2D (lookup) failed {1:x}", _name, (unsigned int) hr);
+            return false;
+        }
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.MipLevels = 1;
+
+        hr = _device->CreateShaderResourceView(*texture, &srvDesc, srv);
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] CreateShaderResourceView (lookup) failed {1:x}", _name, (unsigned int) hr);
+            return false;
+        }
+
+        return true;
+    };
+
+    bool areaOk = createLookupTexture(&_areaTexture, &_areaSRV, DXGI_FORMAT_R8G8_UNORM, AREATEX_WIDTH, AREATEX_HEIGHT,
+                                      AREATEX_PITCH, areaTexBytes);
+    bool searchOk = createLookupTexture(&_searchTexture, &_searchSRV, DXGI_FORMAT_R8_UNORM, SEARCHTEX_WIDTH,
+                                        SEARCHTEX_HEIGHT, SEARCHTEX_PITCH, searchTexBytes);
+
+    return areaOk && searchOk;
+}
+
+bool SMAA_Dx11::EnsureSamplers()
+{
+    if (_device == nullptr)
+        return false;
+
+    if (_linearSampler == nullptr)
+    {
+        D3D11_SAMPLER_DESC desc = {};
+        desc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+        HRESULT hr = _device->CreateSamplerState(&desc, &_linearSampler);
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] CreateSamplerState (linear) failed {1:x}", _name, (unsigned int) hr);
+            return false;
+        }
+    }
+
+    if (_pointSampler == nullptr)
+    {
+        D3D11_SAMPLER_DESC desc = {};
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+        HRESULT hr = _device->CreateSamplerState(&desc, &_pointSampler);
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{0}] CreateSamplerState (point) failed {1:x}", _name, (unsigned int) hr);
+            return false;
+        }
     }
 
     return true;
@@ -248,7 +363,7 @@ bool SMAA_Dx11::EnsureTextures(ID3D11Texture2D* colorTexture)
     if (!createTexture(&_edgeTexture, DXGI_FORMAT_R16G16_FLOAT, &_edgeSRV, &_edgeUAV))
         return false;
 
-    if (!createTexture(&_blendTexture, DXGI_FORMAT_R16G16_FLOAT, &_blendSRV, &_blendUAV))
+    if (!createTexture(&_blendTexture, DXGI_FORMAT_R16G16B16A16_FLOAT, &_blendSRV, &_blendUAV))
         return false;
 
     DXGI_FORMAT outputFormat = ResolveFormat(desc.Format);
@@ -298,6 +413,12 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     if (colorTexture == nullptr)
     {
         LOG_DEBUG("[{0}] Dispatch skipped: color texture is null", _name);
+        return false;
+    }
+
+    if (!EnsureLookupTextures() || !EnsureSamplers())
+    {
+        LOG_DEBUG("[{0}] Dispatch aborted: lookup resources unavailable", _name);
         return false;
     }
 
@@ -354,18 +475,21 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
 
     ID3D11Buffer* constantBuffers[1] = { _constantBuffer };
 
+    ID3D11SamplerState* samplers[2] = { _linearSampler, _pointSampler };
+    context->CSSetSamplers(0, 2, samplers);
+
     // Edge detection pass
-    ID3D11ShaderResourceView* edgeSrvs[2] = { colorSRV, _edgeSRV };
+    ID3D11ShaderResourceView* edgeSrvs[4] = { colorSRV, nullptr, _areaSRV, _searchSRV };
     context->CSSetShader(_edgeShader, nullptr, 0);
-    context->CSSetShaderResources(0, 2, edgeSrvs);
+    context->CSSetShaderResources(0, 4, edgeSrvs);
     context->CSSetConstantBuffers(0, 1, constantBuffers);
     context->CSSetUnorderedAccessViews(0, 1, &_edgeUAV, nullptr);
     context->Dispatch(dispatchX, dispatchY, 1);
 
     ID3D11UnorderedAccessView* nullUav = nullptr;
     context->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);
-    ID3D11ShaderResourceView* nullSrvs[2] = { nullptr, nullptr };
-    context->CSSetShaderResources(0, 2, nullSrvs);
+    ID3D11ShaderResourceView* nullSrvs[4] = { nullptr, nullptr, nullptr, nullptr };
+    context->CSSetShaderResources(0, 4, nullSrvs);
 
     hr = context->Map(_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 
@@ -387,28 +511,30 @@ bool SMAA_Dx11::Dispatch(ID3D11DeviceContext* context, ID3D11Texture2D* colorTex
     context->Unmap(_constantBuffer, 0);
 
     // Blend weight pass
-    ID3D11ShaderResourceView* blendSrvs[2] = { colorSRV, _edgeSRV };
+    ID3D11ShaderResourceView* blendSrvs[4] = { _edgeSRV, _areaSRV, _searchSRV, nullptr };
     context->CSSetShader(_blendShader, nullptr, 0);
-    context->CSSetShaderResources(0, 2, blendSrvs);
+    context->CSSetShaderResources(0, 4, blendSrvs);
     context->CSSetConstantBuffers(0, 1, constantBuffers);
     context->CSSetUnorderedAccessViews(0, 1, &_blendUAV, nullptr);
     context->Dispatch(dispatchX, dispatchY, 1);
 
     context->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);
-    context->CSSetShaderResources(0, 2, nullSrvs);
+    context->CSSetShaderResources(0, 4, nullSrvs);
 
     // Neighborhood blending
-    ID3D11ShaderResourceView* neighborhoodSrvs[2] = { colorSRV, _blendSRV };
+    ID3D11ShaderResourceView* neighborhoodSrvs[4] = { colorSRV, _blendSRV, nullptr, nullptr };
     context->CSSetShader(_neighborhoodShader, nullptr, 0);
-    context->CSSetShaderResources(0, 2, neighborhoodSrvs);
+    context->CSSetShaderResources(0, 4, neighborhoodSrvs);
     context->CSSetConstantBuffers(0, 1, constantBuffers);
     context->CSSetUnorderedAccessViews(0, 1, &_outputUAV, nullptr);
     context->Dispatch(dispatchX, dispatchY, 1);
 
     context->CSSetUnorderedAccessViews(0, 1, &nullUav, nullptr);
-    context->CSSetShaderResources(0, 2, nullSrvs);
+    context->CSSetShaderResources(0, 4, nullSrvs);
 
     context->CSSetShader(nullptr, nullptr, 0);
+    ID3D11SamplerState* nullSamplers[2] = { nullptr, nullptr };
+    context->CSSetSamplers(0, 2, nullSamplers);
 
     colorSRV->Release();
 
@@ -443,6 +569,18 @@ SMAA_Dx11::~SMAA_Dx11()
         _blendUAV = nullptr;
     }
 
+    if (_areaSRV != nullptr)
+    {
+        _areaSRV->Release();
+        _areaSRV = nullptr;
+    }
+
+    if (_searchSRV != nullptr)
+    {
+        _searchSRV->Release();
+        _searchSRV = nullptr;
+    }
+
     if (_outputUAV != nullptr)
     {
         _outputUAV->Release();
@@ -459,6 +597,18 @@ SMAA_Dx11::~SMAA_Dx11()
     {
         _blendTexture->Release();
         _blendTexture = nullptr;
+    }
+
+    if (_areaTexture != nullptr)
+    {
+        _areaTexture->Release();
+        _areaTexture = nullptr;
+    }
+
+    if (_searchTexture != nullptr)
+    {
+        _searchTexture->Release();
+        _searchTexture = nullptr;
     }
 
     if (_outputTexture != nullptr)
@@ -489,5 +639,17 @@ SMAA_Dx11::~SMAA_Dx11()
     {
         _neighborhoodShader->Release();
         _neighborhoodShader = nullptr;
+    }
+
+    if (_linearSampler != nullptr)
+    {
+        _linearSampler->Release();
+        _linearSampler = nullptr;
+    }
+
+    if (_pointSampler != nullptr)
+    {
+        _pointSampler->Release();
+        _pointSampler = nullptr;
     }
 }
