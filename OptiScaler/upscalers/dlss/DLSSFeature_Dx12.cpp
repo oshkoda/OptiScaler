@@ -170,7 +170,10 @@ bool DLSSFeatureDx12::Init(ID3D12Device* InDevice, ID3D12GraphicsCommandList* In
         RCAS = std::make_unique<RCAS_Dx12>("RCAS", InDevice);
         SMAA = std::make_unique<SMAA_Dx12>("SMAA", InDevice);
 
-        if (!Config::Instance()->OverlayMenu.value_or_default() && (Imgui == nullptr || Imgui.get() == nullptr))
+        bool overlayMenuEnabled = Config::Instance()->OverlayMenu.value_or_default();
+        bool debugPreviewEnabled = Config::Instance()->DebugShowDlssInput.value_or_default();
+
+        if (((!overlayMenuEnabled) || debugPreviewEnabled) && (Imgui == nullptr || Imgui.get() == nullptr))
             Imgui = std::make_unique<Menu_Dx12>(Util::GetProcessWindow(), InDevice);
 
         OutputScaler = std::make_unique<OS_Dx12>("OutputScaling", InDevice, (TargetWidth() < DisplayWidth()));
@@ -271,6 +274,10 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
         }
 
         bool debugPreviewRequested = Config::Instance()->DebugShowDlssInput.value_or_default();
+
+        if (debugPreviewRequested && Device != nullptr && (Imgui == nullptr || Imgui.get() == nullptr))
+            Imgui = std::make_unique<Menu_Dx12>(Util::GetProcessWindow(), Device);
+
         if (debugPreviewRequested && smaaApplied)
         {
             if (EnsureDebugTexture(SMAA->ProcessedResource()))

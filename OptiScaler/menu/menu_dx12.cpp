@@ -39,6 +39,34 @@ struct ImGui_ImplDX12_Data
 
 static DescriptorHeapAllocator g_pd3dSrvDescHeapAlloc;
 
+bool Menu_Dx12::EnsurePreviewDescriptors()
+{
+    if (_device == nullptr)
+        return false;
+
+    if (_srvDescHeap != nullptr)
+        return true;
+
+    D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
+    srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    srvDesc.NumDescriptors = SRV_HEAP_SIZE;
+    srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    State::Instance().skipHeapCapture = true;
+    HRESULT hr = _device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&_srvDescHeap));
+    State::Instance().skipHeapCapture = false;
+
+    if (FAILED(hr))
+        return false;
+
+    g_pd3dSrvDescHeapAlloc.Destroy();
+    g_pd3dSrvDescHeapAlloc.Create(_device, _srvDescHeap);
+
+    _srvDescHeap->SetName(L"Imgui_Dx12_srvDescHeap");
+
+    return true;
+}
+
 bool Menu_Dx12::Render(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* outTexture)
 {
     if (Config::Instance()->OverlayMenu.value_or_default())
@@ -198,9 +226,9 @@ bool Menu_Dx12::Render(ID3D12GraphicsCommandList* pCmdList, ID3D12Resource* outT
 
 void Menu_Dx12::UpdateDlssInputPreview(ID3D12Resource* resource)
 {
-    if (_srvDescHeap == nullptr)
+    if (!EnsurePreviewDescriptors())
     {
-        if (_dlssPreviewDescriptorAllocated)
+        if (_dlssPreviewDescriptorAllocated && g_pd3dSrvDescHeapAlloc.Heap != nullptr)
         {
             g_pd3dSrvDescHeapAlloc.Free(_dlssPreviewSrvCpu, _dlssPreviewSrvGpu);
             _dlssPreviewDescriptorAllocated = false;
@@ -239,7 +267,14 @@ void Menu_Dx12::UpdateDlssInputPreview(ID3D12Resource* resource)
 
 Menu_Dx12::Menu_Dx12(HWND handle, ID3D12Device* pDevice) : MenuDxBase(handle), _device(pDevice)
 {
-    if (Config::Instance()->OverlayMenu.value_or_default())
+    bool overlayEnabled = Config::Instance()->OverlayMenu.value_or_default();
+
+    if (!EnsurePreviewDescriptors())
+        return;
+
+    Dx12Ready();
+
+    if (overlayEnabled)
         return;
 
     D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
@@ -262,43 +297,25 @@ Menu_Dx12::Menu_Dx12(HWND handle, ID3D12Device* pDevice) : MenuDxBase(handle), _
         rtvHandle.ptr += rtvDescriptorSize;
     }
 
-    D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
-    srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    srvDesc.NumDescriptors = SRV_HEAP_SIZE;
-    srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-
-    State::Instance().skipHeapCapture = true;
-
-    if (pDevice->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&_srvDescHeap)) != S_OK)
-        return;
-
-    State::Instance().skipHeapCapture = false;
-
-    g_pd3dSrvDescHeapAlloc.Destroy();
-    g_pd3dSrvDescHeapAlloc.Create(pDevice, _srvDescHeap);
-
-    Dx12Ready();
-
-    _srvDescHeap->SetName(L"Imgui_Dx12_srvDescHeap");
 }
 
 Menu_Dx12::~Menu_Dx12()
 {
     // g_pd3dSrvDescHeapAlloc.Destroy(); // Can cause a crash on app close, unsure why
 
-    if (!_dx12Init)
-        return;
-
-    // On shutting down don't invalidate device objects
-    ImGui_ImplDX12_Shutdown(true, !State::Instance().isShuttingDown);
-    MenuCommon::Shutdown();
-
-    if (_dlssPreviewDescriptorAllocated)
+    if (_dlssPreviewDescriptorAllocated && g_pd3dSrvDescHeapAlloc.Heap != nullptr)
     {
         g_pd3dSrvDescHeapAlloc.Free(_dlssPreviewSrvCpu, _dlssPreviewSrvGpu);
         _dlssPreviewDescriptorAllocated = false;
     }
     MenuCommon::SetDlssInputPreview(ImTextureID_Invalid, ImVec2(0.0f, 0.0f));
+
+    if (_dx12Init)
+    {
+        // On shutting down don't invalidate device objects
+        ImGui_ImplDX12_Shutdown(true, !State::Instance().isShuttingDown);
+        MenuCommon::Shutdown();
+    }
 
     if (_rtvDescHeap)
     {
