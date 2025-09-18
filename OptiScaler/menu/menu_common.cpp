@@ -14,6 +14,7 @@
 #include <nvapi/fakenvapi.h>
 #include <nvapi/ReflexHooks.h>
 
+#include <algorithm>
 #include <imgui/imgui_internal.h>
 
 #define MARK_ALL_BACKENDS_CHANGED()                                                                                    \
@@ -3411,12 +3412,54 @@ bool MenuCommon::RenderMenu()
 
                                 if (previewTexture != ImTextureID_Invalid && previewSize.x > 0.0f && previewSize.y > 0.0f)
                                 {
-                                    float maxWidth = 320.0f * Config::Instance()->MenuScale.value_or_default();
-                                    float aspect = previewSize.y / previewSize.x;
-                                    if (aspect <= 0.0f)
-                                        aspect = 1.0f;
-                                    ImVec2 imageSize { maxWidth, maxWidth * aspect };
-                                    ImGui::Image(ImTextureRef(previewTexture), imageSize);
+                                    ImVec2 available = ImGui::GetContentRegionAvail();
+                                    float availableWidth = std::max(available.x, 0.0f);
+                                    float availableHeight = std::max(available.y, 0.0f);
+
+                                    int maxScaleWidth = availableWidth > 0.0f
+                                                            ? static_cast<int>(availableWidth / previewSize.x)
+                                                            : 0;
+                                    int maxScaleHeight = availableHeight > 0.0f
+                                                             ? static_cast<int>(availableHeight / previewSize.y)
+                                                             : 0;
+
+                                    int fittedScale = 0;
+                                    if (maxScaleWidth > 0 && maxScaleHeight > 0)
+                                        fittedScale = std::min(maxScaleWidth, maxScaleHeight);
+                                    else
+                                        fittedScale = std::max(maxScaleWidth, maxScaleHeight);
+
+                                    int displayScale = std::max(1, fittedScale);
+                                    ImVec2 imageSize { previewSize.x * displayScale, previewSize.y * displayScale };
+
+                                    bool exceedsWidth = availableWidth > 0.0f && imageSize.x > availableWidth;
+                                    bool exceedsHeight = availableHeight > 0.0f && imageSize.y > availableHeight;
+
+                                    if (exceedsWidth || exceedsHeight)
+                                    {
+                                        ImGuiIO& previewIo = ImGui::GetIO();
+                                        float fallbackHeight = availableHeight > 0.0f
+                                                                    ? availableHeight
+                                                                    : std::min(imageSize.y, previewIo.DisplaySize.y * 0.5f);
+                                        float childWidth = availableWidth > 0.0f
+                                                               ? availableWidth
+                                                               : std::min(imageSize.x, previewIo.DisplaySize.x * 0.9f);
+
+                                        fallbackHeight = std::max(fallbackHeight, 1.0f);
+                                        childWidth = std::max(childWidth, 1.0f);
+
+                                        ImGui::BeginChild("DLSSPreview", ImVec2(childWidth, fallbackHeight), true,
+                                                          ImGuiWindowFlags_HorizontalScrollbar);
+                                        ImGui::Image(ImTextureRef(previewTexture), imageSize);
+                                        ImGui::EndChild();
+                                    }
+                                    else
+                                    {
+                                        ImGui::Image(ImTextureRef(previewTexture), imageSize);
+                                    }
+
+                                    ImGui::TextDisabled("Preview: %.0fx%.0f @ %dx", previewSize.x, previewSize.y,
+                                                       displayScale);
                                 }
                                 else
                                 {
