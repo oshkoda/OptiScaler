@@ -8,14 +8,14 @@
 class SMAA_Dx12
 {
   public:
-    struct Constants
+    struct alignas(16) Constants
     {
-        float invWidth;
-        float invHeight;
+        float invResolution[2];
+        float padding0[2];
         float threshold;
+        float edgeIntensity;
         float blendStrength;
-        float pad0;
-        float pad1;
+        float padding1[2];
     };
 
   private:

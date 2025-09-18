@@ -4,6 +4,7 @@
 #include "precompile/SMAA_Blend_Shader.h"
 #include "precompile/SMAA_Neighborhood_Shader.h"
 #include <wrl/client.h>
+#include <limits>
 
 namespace
 {
@@ -57,7 +58,8 @@ bool SupportsTypedUavStore(ID3D12Device* device, DXGI_FORMAT format)
     return (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
 }
 
-constexpr float kDefaultThreshold = 0.075f;
+constexpr float kDefaultThreshold = std::numeric_limits<float>::epsilon();
+constexpr float kDefaultEdgeIntensity = 1.0f;
 constexpr float kDefaultBlendStrength = 0.6f;
 } // namespace
 
@@ -327,12 +329,11 @@ void SMAA_Dx12::TransitionResource(ID3D12GraphicsCommandList* commandList, ID3D1
 
 void SMAA_Dx12::UpdateConstants(ID3D12GraphicsCommandList* commandList, UINT width, UINT height)
 {
-    _constants.invWidth = width > 0 ? 1.0f / static_cast<float>(width) : 0.0f;
-    _constants.invHeight = height > 0 ? 1.0f / static_cast<float>(height) : 0.0f;
+    _constants.invResolution[0] = width > 0 ? 1.0f / static_cast<float>(width) : 0.0f;
+    _constants.invResolution[1] = height > 0 ? 1.0f / static_cast<float>(height) : 0.0f;
     _constants.threshold = kDefaultThreshold;
+    _constants.edgeIntensity = kDefaultEdgeIntensity;
     _constants.blendStrength = kDefaultBlendStrength;
-    _constants.pad0 = 0.0f;
-    _constants.pad1 = 0.0f;
 
     commandList->SetComputeRoot32BitConstants(3, sizeof(Constants) / sizeof(uint32_t), &_constants, 0);
 }
