@@ -216,6 +216,11 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
         ID3D12Resource* originalColor = nullptr;
         bool smaaApplied = false;
 
+        if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
+            InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
+
+        LOG_DEBUG("[DLSS Dx12] Current DLSS color resource={:X}", (size_t) originalColor);
+
         bool smaaEnabled = Config::Instance()->SmaaEnabled.value_or_default();
         bool smaaInit = SMAA != nullptr && SMAA.get() != nullptr && SMAA->IsInit();
 
@@ -223,11 +228,6 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
 
         if (smaaEnabled && smaaInit)
         {
-            if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
-                InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
-
-            LOG_DEBUG("[DLSS Dx12] SMAA original color resource={:X}", (size_t) originalColor);
-
             if (originalColor != nullptr)
             {
                 auto colorDesc = originalColor->GetDesc();
@@ -278,11 +278,13 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
         if (debugPreviewRequested && Device != nullptr && (Imgui == nullptr || Imgui.get() == nullptr))
             Imgui = std::make_unique<Menu_Dx12>(Util::GetProcessWindow(), Device);
 
-        if (debugPreviewRequested && smaaApplied)
+        ID3D12Resource* dlssInputResource = smaaApplied ? SMAA->ProcessedResource() : originalColor;
+
+        if (debugPreviewRequested)
         {
-            if (EnsureDebugTexture(SMAA->ProcessedResource()))
+            if (dlssInputResource != nullptr && EnsureDebugTexture(dlssInputResource))
             {
-                CopyDebugTexture(InCommandList, SMAA->ProcessedResource());
+                CopyDebugTexture(InCommandList, dlssInputResource);
 
                 if (Imgui != nullptr && Imgui.get() != nullptr)
                     Imgui->UpdateDlssInputPreview(_dlssDebugTexture);
@@ -292,16 +294,17 @@ bool DLSSFeatureDx12::Evaluate(ID3D12GraphicsCommandList* InCommandList, NVSDK_N
                 Imgui->UpdateDlssInputPreview(nullptr);
             }
         }
-        else if (Imgui != nullptr && Imgui.get() != nullptr)
+        else
         {
-            Imgui->UpdateDlssInputPreview(nullptr);
-        }
+            if (Imgui != nullptr && Imgui.get() != nullptr)
+                Imgui->UpdateDlssInputPreview(nullptr);
 
-        if ((!debugPreviewRequested || !smaaApplied) && _dlssDebugTexture != nullptr)
-        {
-            _dlssDebugTexture->Release();
-            _dlssDebugTexture = nullptr;
-            _dlssDebugState = D3D12_RESOURCE_STATE_COMMON;
+            if (_dlssDebugTexture != nullptr)
+            {
+                _dlssDebugTexture->Release();
+                _dlssDebugTexture = nullptr;
+                _dlssDebugState = D3D12_RESOURCE_STATE_COMMON;
+            }
         }
 
         ID3D12Resource* paramOutput = nullptr;
