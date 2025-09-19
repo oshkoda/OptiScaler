@@ -293,34 +293,22 @@
     <ClInclude Include="shaders\rcas\RCAS_Dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Blend_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Blend_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Edge_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Edge_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\precompile\SMAA_Neighborhood_Shader_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="shaders\smaa\AreaTex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\smaa\CMAA2Sample.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\smaa\RenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\smaa\SMAA.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="shaders\smaa\SearchTex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shaders\smaa\SMAA_Dx11.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shaders\smaa\SMAA_Dx12.h">
+    <ClInclude Include="shaders\smaa\vaSMAAWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\imgui\imgui.h">
@@ -710,10 +698,19 @@
     <ClCompile Include="shaders\rcas\RCAS_Dx12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="shaders\smaa\SMAA_Dx11.cpp">
+    <ClCompile Include="shaders\smaa\CMAA2Sample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="shaders\smaa\SMAA_Dx12.cpp">
+    <ClCompile Include="shaders\smaa\RenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\smaa\SMAA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\smaa\vaSMAAWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="shaders\smaa\vaSMAAWrapperDX11.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\imgui\imgui.cpp">
