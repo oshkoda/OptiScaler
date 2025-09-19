@@ -454,12 +454,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClInclude Include="shaders\rcas\RCAS_Common.h" />
     <ClInclude Include="shaders\rcas\RCAS_Dx11.h" />
     <ClInclude Include="shaders\rcas\RCAS_Dx12.h" />
-    <ClInclude Include="shaders\smaa\AreaTex.h" />
-    <ClInclude Include="shaders\smaa\CMAA2Sample.h" />
-    <ClInclude Include="shaders\smaa\RenderTarget.h" />
-    <ClInclude Include="shaders\smaa\SMAA.h" />
-    <ClInclude Include="shaders\smaa\SearchTex.h" />
-    <ClInclude Include="shaders\smaa\vaSMAAWrapper.h" />
+    <ClInclude Include="shaders\smaa\CMAA2_Dx11.h" />
     <ClInclude Include="State.h" />
     <ClInclude Include="upscalers\xess\XeSSFeature_Dx11on12.h" />
     <ClInclude Include="upscalers\xess\XeSSFeature_Vk.h" />
@@ -562,11 +557,7 @@ copy NUL "$(SolutionDir)x64\Release\a\!! EXTRACT ALL FILES TO GAME FOLDER !!" /Y
     <ClCompile Include="shaders\output_scaling\OS_Dx12.cpp" />
     <ClCompile Include="shaders\rcas\RCAS_Dx11.cpp" />
     <ClCompile Include="shaders\rcas\RCAS_Dx12.cpp" />
-    <ClCompile Include="shaders\smaa\CMAA2Sample.cpp" />
-    <ClCompile Include="shaders\smaa\RenderTarget.cpp" />
-    <ClCompile Include="shaders\smaa\SMAA.cpp" />
-    <ClCompile Include="shaders\smaa\vaSMAAWrapper.cpp" />
-    <ClCompile Include="shaders\smaa\vaSMAAWrapperDX11.cpp" />
+    <ClCompile Include="shaders\smaa\CMAA2_Dx11.cpp" />
     <ClCompile Include="upscalers\xess\XeSSFeature_Vk.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="inputs\XeSS_Debug.cpp" />

@@ -37,9 +37,9 @@ IFeature_Dx11::~IFeature_Dx11()
         Bias = nullptr;
     }
 
-    if (SMAA != nullptr && SMAA.get() != nullptr)
+    if (CMAA2 != nullptr && CMAA2.get() != nullptr)
     {
-        SMAA.reset();
-        SMAA = nullptr;
+        CMAA2.reset();
+        CMAA2 = nullptr;
     }
 }

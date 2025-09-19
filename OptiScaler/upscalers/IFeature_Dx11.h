@@ -4,7 +4,7 @@
 #include <shaders/rcas/RCAS_Dx11.h>
 #include <shaders/output_scaling/OS_Dx11.h>
 #include <shaders/bias/Bias_Dx11.h>
-#include <shaders/smaa/SMAA_Dx11.h>
+#include <shaders/smaa/CMAA2_Dx11.h>
 
 class IFeature_Dx11 : public virtual IFeature
 {
@@ -16,7 +16,7 @@ class IFeature_Dx11 : public virtual IFeature
     std::unique_ptr<OS_Dx11> OutputScaler = nullptr;
     std::unique_ptr<RCAS_Dx11> RCAS = nullptr;
     std::unique_ptr<Bias_Dx11> Bias = nullptr;
-    std::unique_ptr<SMAA_Dx11> SMAA = nullptr;
+    std::unique_ptr<CMAA2_Dx11> CMAA2 = nullptr;
 
   public:
     virtual bool Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContext, NVSDK_NGX_Parameter* InParameters) = 0;
