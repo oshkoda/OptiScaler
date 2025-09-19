@@ -440,17 +440,17 @@ bool CMAA2_Dx11::EnsureIntermediateResources(UINT width, UINT height, DXGI_FORMA
     desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 
-    desc.ByteWidth = std::max(1u, requiredCandidatePixels) * sizeof(UINT);
+    desc.ByteWidth = (std::max)(1u, requiredCandidatePixels) * sizeof(UINT);
     desc.StructureByteStride = sizeof(UINT);
     if (!CreateBufferAndViews(_device.Get(), desc, _shapeCandidatesBuffer, _shapeCandidatesUAV))
         return false;
 
-    desc.ByteWidth = std::max(1u, requiredDeferredColorApplyBuffer) * sizeof(UINT) * 2;
+    desc.ByteWidth = (std::max)(1u, requiredDeferredColorApplyBuffer) * sizeof(UINT) * 2;
     desc.StructureByteStride = sizeof(UINT) * 2;
     if (!CreateBufferAndViews(_device.Get(), desc, _deferredItemBuffer, _deferredItemUAV))
         return false;
 
-    desc.ByteWidth = std::max(1u, requiredListHeadsPixels) * sizeof(UINT);
+    desc.ByteWidth = (std::max)(1u, requiredListHeadsPixels) * sizeof(UINT);
     desc.StructureByteStride = sizeof(UINT);
     if (!CreateBufferAndViews(_device.Get(), desc, _deferredLocationBuffer, _deferredLocationUAV))
         return false;
