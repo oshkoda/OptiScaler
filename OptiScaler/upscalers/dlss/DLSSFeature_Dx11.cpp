@@ -76,7 +76,7 @@ bool DLSSFeatureDx11::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InContex
 
         OutputScaler = std::make_unique<OS_Dx11>("Output Scaling", InDevice, (TargetWidth() < DisplayWidth()));
         RCAS = std::make_unique<RCAS_Dx11>("RCAS", InDevice);
-        SMAA = std::make_unique<SMAA_Dx11>("SMAA", InDevice);
+        CMAA2 = std::make_unique<CMAA2_Dx11>("CMAA2", InDevice);
     }
 
     SetInit(initResult);
@@ -138,65 +138,65 @@ bool DLSSFeatureDx11::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_P
         ProcessEvaluateParams(InParameters);
 
         ID3D11Resource* originalColor = nullptr;
-        bool smaaApplied = false;
+        bool cmaaApplied = false;
 
         bool smaaEnabled = Config::Instance()->SmaaEnabled.value_or_default();
-        bool smaaInit = SMAA != nullptr && SMAA.get() != nullptr && SMAA->IsInit();
+        bool cmaaInit = CMAA2 != nullptr && CMAA2.get() != nullptr && CMAA2->IsInit();
 
-        LOG_DEBUG("[DLSS Dx11] SMAA evaluation request: enabled={}, instanceInit={}", smaaEnabled, smaaInit);
+        LOG_DEBUG("[DLSS Dx11] CMAA2 evaluation request: enabled={}, instanceInit={}", smaaEnabled, cmaaInit);
 
-        if (smaaEnabled && smaaInit)
+        if (smaaEnabled && cmaaInit)
         {
             if (InParameters->Get(NVSDK_NGX_Parameter_Color, &originalColor) != NVSDK_NGX_Result_Success)
                 InParameters->Get(NVSDK_NGX_Parameter_Color, (void**) &originalColor);
 
-            LOG_DEBUG("[DLSS Dx11] SMAA original color resource={:X}", (size_t) originalColor);
+            LOG_DEBUG("[DLSS Dx11] CMAA2 original color resource={:X}", (size_t) originalColor);
 
             if (originalColor != nullptr)
             {
                 D3D11_TEXTURE2D_DESC colorDesc = {};
                 ((ID3D11Texture2D*) originalColor)->GetDesc(&colorDesc);
 
-                bool buffersReady = SMAA->CreateBufferResources((ID3D11Texture2D*) originalColor);
-                LOG_DEBUG("[DLSS Dx11] SMAA CreateBufferResources {} for {}x{} format={}",
+                bool buffersReady = CMAA2->CreateBufferResources((ID3D11Texture2D*) originalColor);
+                LOG_DEBUG("[DLSS Dx11] CMAA2 CreateBufferResources {} for {}x{} format={}",
                           buffersReady ? "succeeded" : "failed", colorDesc.Width, colorDesc.Height,
                           (int) colorDesc.Format);
 
                 if (buffersReady)
                 {
-                    bool dispatchOk = SMAA->Dispatch(InDeviceContext, (ID3D11Texture2D*) originalColor);
-                    LOG_DEBUG("[DLSS Dx11] SMAA Dispatch {} for {}x{} format={}",
+                    bool dispatchOk = CMAA2->Dispatch(InDeviceContext, (ID3D11Texture2D*) originalColor);
+                    LOG_DEBUG("[DLSS Dx11] CMAA2 Dispatch {} for {}x{} format={}",
                               dispatchOk ? "succeeded" : "failed", colorDesc.Width, colorDesc.Height,
                               (int) colorDesc.Format);
 
                     if (dispatchOk)
                     {
-                        InParameters->Set(NVSDK_NGX_Parameter_Color, (ID3D11Resource*) SMAA->ProcessedResource());
-                        LOG_INFO("[DLSS Dx11] SMAA output bound to DLSS color ({}x{}, format={})", colorDesc.Width,
+                        InParameters->Set(NVSDK_NGX_Parameter_Color, (ID3D11Resource*) CMAA2->ProcessedResource());
+                        LOG_INFO("[DLSS Dx11] CMAA2 output bound to DLSS color ({}x{}, format={})", colorDesc.Width,
                                  colorDesc.Height, (int) colorDesc.Format);
-                        smaaApplied = true;
+                        cmaaApplied = true;
                     }
                 }
             }
             else
             {
-                LOG_DEBUG("[DLSS Dx11] SMAA skipped: original color resource is null");
+                LOG_DEBUG("[DLSS Dx11] CMAA2 skipped: original color resource is null");
             }
 
-            if (!smaaApplied && Config::Instance()->SmaaEnabled.has_value())
+            if (!cmaaApplied && Config::Instance()->SmaaEnabled.has_value())
             {
-                LOG_INFO("[DLSS Dx11] Disabling SMAA override after failed attempt (resource={:X})",
+                LOG_INFO("[DLSS Dx11] Disabling CMAA2 override after failed attempt (resource={:X})",
                          (size_t) originalColor);
                 Config::Instance()->SmaaEnabled.set_volatile_value(false);
             }
         }
         else if (!smaaEnabled)
         {
-            LOG_DEBUG("[DLSS Dx11] SMAA skipped: configuration disabled");
+            LOG_DEBUG("[DLSS Dx11] CMAA2 skipped: configuration disabled");
         }
-        else if (!smaaInit)
+        else if (!cmaaInit)
         {
-            LOG_DEBUG("[DLSS Dx11] SMAA skipped: instance not initialized");
+            LOG_DEBUG("[DLSS Dx11] CMAA2 skipped: instance not initialized");
         }
 
         ID3D11Resource* paramOutput = nullptr;
@@ -344,7 +344,7 @@ bool DLSSFeatureDx11::Evaluate(ID3D11DeviceContext* InDeviceContext, NVSDK_NGX_P
                 InDeviceContext->CSSetUnorderedAccessViews(i, 1, &restoreUAVs[i], 0);
         }
 
-        if (smaaApplied)
+        if (cmaaApplied)
         {
             InParameters->Set(NVSDK_NGX_Parameter_Color, originalColor);
             LOG_DEBUG("[DLSS Dx11] Restored original DLSS color resource {:X}", (size_t) originalColor);
