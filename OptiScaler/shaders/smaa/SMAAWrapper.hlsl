@@ -14,6 +14,7 @@ struct SMAAShaderConstants
 #else
     float subsampleIndices[4];
 #endif
+    float4 metrics;
     /**
      * This is required for blending the results of previous subsample with the
      * output render target; it's used in SMAA S2x and 4x, for other modes just use
@@ -51,7 +52,7 @@ cbuffer SMAAGlobals : register( b0 )
 
 // Use a real macro here for maximum performance!
 #ifndef SMAA_RT_METRICS // This is just for compilation-time syntax checking.
-#define SMAA_RT_METRICS float4(1.0 / 1280.0, 1.0 / 720.0, 1280.0, 720.0)
+#define SMAA_RT_METRICS g_SMAA.metrics
 #endif
 
 // Set the HLSL version:
