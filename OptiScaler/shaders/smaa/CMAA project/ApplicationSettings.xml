@@ -1,0 +1,172 @@
+<vaXMLSerializer>1</vaXMLSerializer>
+<WindowPositionX>-8</WindowPositionX>
+
+<WindowPositionY>-8</WindowPositionY>
+
+<WindowClientSizeX>3413</WindowClientSizeX>
+
+<WindowClientSizeY>889</WindowClientSizeY>
+
+<FullscreenState>1</FullscreenState>
+
+<ApplicationSettings>
+    <SceneChoice>0</SceneChoice>
+    <ShowWireframe>false</ShowWireframe>
+    <CameraYFov>0.95993108</CameraYFov>
+    <CurrentAAOption>3</CurrentAAOption>
+    <CurrentStaticImageChoice>1</CurrentStaticImageChoice>
+    <MSAADebugSampleIndex>-1</MSAADebugSampleIndex>
+    <ZPrePass>true</ZPrePass>
+</ApplicationSettings>
+
+<UISettings>
+    <Visible>true</Visible>
+    <MenuVisible>true</MenuVisible>
+    <ConsoleVisible>true</ConsoleVisible>
+    <PanelVisibility array="true">
+        <Info>
+            <first>ASSAOLite</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Asset Importer</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Assets</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>CMAA2 DX11/DX12 sample</first>
+            <second>true</second>
+        </Info>
+        <Info>
+            <first>Camera</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Camera (1)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>CompareTool</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>GBuffer</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Lighting</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Properties 1</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Properties 2</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Properties 3</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>RenderGlobals</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>RenderMaterialManager</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>RenderMeshManager</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (1)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (2)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (3)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (4)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (5)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (6)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>SM (7)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Scene</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Scene (1)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Scene (2)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>Scenes</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>ShadowMaps</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>System &amp; Performance</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>ZoomTool</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset (1)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset (2)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset (3)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset (4)</first>
+            <second>false</second>
+        </Info>
+        <Info>
+            <first>asset (5)</first>
+            <second>false</second>
+        </Info>
+    </PanelVisibility>
+</UISettings>
