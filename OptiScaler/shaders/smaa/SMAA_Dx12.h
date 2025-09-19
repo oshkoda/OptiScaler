@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+
 #include <filesystem>
+
 #include <string>
 
 #include <d3d12.h>
@@ -39,10 +41,17 @@ class SMAA_Dx12
     ID3D12Device* _device = nullptr;
     bool _init = false;
     bool _buffersReady = false;
+
     bool _shadersReady = false;
 
     std::array<SMAAResourceHandles, 4> _srvTable = {};
     std::array<SMAAResourceHandles, 8> _uavTable = {};
+
+    SMAAResourceHandles _inputColorSrv;
+    SMAAResourceHandles _edgeBufferUav;
+    SMAAResourceHandles _blendBufferUav;
+    SMAAResourceHandles _processedColorSrv;
+
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _srvHeap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _uavHeap;
@@ -60,6 +69,7 @@ class SMAA_Dx12
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _dispatchArgsPipeline;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _processPipeline;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _deferredPipeline;
+    Microsoft::WRL::ComPtr<ID3D12Resource> _blendBuffer;
 
     ID3D12Resource* _processedResource = nullptr;
     ID3D12Resource* _inputResource = nullptr;
