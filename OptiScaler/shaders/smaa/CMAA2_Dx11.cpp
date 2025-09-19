@@ -422,12 +422,12 @@ bool CMAA2_Dx11::EnsureIntermediateResources(UINT width, UINT height, DXGI_FORMA
 #endif
 
     DXGI_FORMAT edgesFormat = DXGI_FORMAT_R8_UINT;
-    if (!CreateTextureUAV(_device.Get(), packedWidth, height, edgesFormat, &_edgesTexture, &_edgesUAV))
+    if (!CreateTextureUAV(_device.Get(), packedWidth, height, edgesFormat, _edgesTexture, _edgesUAV))
         return false;
 
     UINT headsWidth = (width + 1) / 2;
     UINT headsHeight = (height + 1) / 2;
-    if (!CreateTextureUAV(_device.Get(), headsWidth, headsHeight, DXGI_FORMAT_R32_UINT, &_deferredHeadsTexture, &_deferredHeadsUAV))
+    if (!CreateTextureUAV(_device.Get(), headsWidth, headsHeight, DXGI_FORMAT_R32_UINT, _deferredHeadsTexture, _deferredHeadsUAV))
         return false;
 
     // working buffers
@@ -442,17 +442,17 @@ bool CMAA2_Dx11::EnsureIntermediateResources(UINT width, UINT height, DXGI_FORMA
 
     desc.ByteWidth = std::max(1u, requiredCandidatePixels) * sizeof(UINT);
     desc.StructureByteStride = sizeof(UINT);
-    if (!CreateBufferAndViews(_device.Get(), desc, &_shapeCandidatesBuffer, &_shapeCandidatesUAV))
+    if (!CreateBufferAndViews(_device.Get(), desc, _shapeCandidatesBuffer, _shapeCandidatesUAV))
         return false;
 
     desc.ByteWidth = std::max(1u, requiredDeferredColorApplyBuffer) * sizeof(UINT) * 2;
     desc.StructureByteStride = sizeof(UINT) * 2;
-    if (!CreateBufferAndViews(_device.Get(), desc, &_deferredItemBuffer, &_deferredItemUAV))
+    if (!CreateBufferAndViews(_device.Get(), desc, _deferredItemBuffer, _deferredItemUAV))
         return false;
 
     desc.ByteWidth = std::max(1u, requiredListHeadsPixels) * sizeof(UINT);
     desc.StructureByteStride = sizeof(UINT);
-    if (!CreateBufferAndViews(_device.Get(), desc, &_deferredLocationBuffer, &_deferredLocationUAV))
+    if (!CreateBufferAndViews(_device.Get(), desc, _deferredLocationBuffer, _deferredLocationUAV))
         return false;
 
     // control buffer (raw)
@@ -462,7 +462,7 @@ bool CMAA2_Dx11::EnsureIntermediateResources(UINT width, UINT height, DXGI_FORMA
     controlDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS | D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
     controlDesc.Usage = D3D11_USAGE_DEFAULT;
     controlDesc.StructureByteStride = 0;
-    if (!CreateBufferAndViews(_device.Get(), controlDesc, &_dispatchArgsBuffer, &_dispatchArgsUAV, D3D11_BUFFER_UAV_FLAG_RAW))
+    if (!CreateBufferAndViews(_device.Get(), controlDesc, _dispatchArgsBuffer, _dispatchArgsUAV, D3D11_BUFFER_UAV_FLAG_RAW))
         return false;
 
     D3D11_BUFFER_DESC workingControl = {};
@@ -471,7 +471,7 @@ bool CMAA2_Dx11::EnsureIntermediateResources(UINT width, UINT height, DXGI_FORMA
     workingControl.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
     workingControl.Usage = D3D11_USAGE_DEFAULT;
     workingControl.StructureByteStride = 0;
-    if (!CreateBufferAndViews(_device.Get(), workingControl, &_controlBuffer, &_controlBufferUAV, D3D11_BUFFER_UAV_FLAG_RAW))
+    if (!CreateBufferAndViews(_device.Get(), workingControl, _controlBuffer, _controlBufferUAV, D3D11_BUFFER_UAV_FLAG_RAW))
         return false;
 
     return true;
