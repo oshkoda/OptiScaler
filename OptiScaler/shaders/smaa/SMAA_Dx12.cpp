@@ -192,9 +192,17 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         _cachedInputDesc = desc;
 
         _buffersReady = EnsureDescriptorHeaps();
+        if (!_buffersReady)
+        {
+            LOG_ERROR("[{}] Failed to prepare CMAA2 descriptor heaps", _name);
+        }
         if (_buffersReady)
         {
             _buffersReady = UpdateInputDescriptors(sourceTexture, desc);
+            if (!_buffersReady)
+            {
+                LOG_ERROR("[{}] Failed to update CMAA2 input descriptors", _name);
+            }
         }
         if (_buffersReady)
         {
@@ -659,12 +667,16 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (typedStoreSupported)
     {
+        LOG_DEBUG("[{}] CMAA2 typed UAV store supported for format={} (convertSRGB={}, isUnorm={})", _name,
+                  static_cast<int>(uavFormat), isSRGB, !IsFloatFormat(uavFormat));
         _shaderConfig.typedStore = true;
         _shaderConfig.convertToSRGB = false;
         _shaderConfig.typedStoreIsUnorm = !IsFloatFormat(uavFormat);
     }
     else
     {
+        LOG_WARN("[{}] CMAA2 typed UAV store unsupported for format={}, falling back to untyped packing", _name,
+                 static_cast<int>(uavFormat));
         finalUavFormat = DXGI_FORMAT_R32_UINT;
         _shaderConfig.typedStore = false;
         _shaderConfig.convertToSRGB = isSRGB;
@@ -682,12 +694,19 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         {
             _shaderConfig.untypedStoreMode = 3;
         }
+        else if (stripped == DXGI_FORMAT_R11G11B10_FLOAT)
+        {
+            _shaderConfig.untypedStoreMode = 4;
+        }
         else
         {
             LOG_ERROR("[{}] Unsupported CMAA2 format for untyped UAV store ({})", _name, static_cast<int>(stripped));
 
             return false;
         }
+
+        LOG_DEBUG("[{}] CMAA2 untyped store mode selected: mode={} (srvFormat={} convertSRGB={})", _name,
+                  _shaderConfig.untypedStoreMode, static_cast<int>(stripped), _shaderConfig.convertToSRGB);
     }
 
     _shaderConfig.hdrInput = IsFloatFormat(srvFormat);

@@ -399,6 +399,11 @@ uint FLOAT4_to_B8G8R8A8_UNORM( lpfloat4 unpackedInput )
             ( uint( saturate( unpackedInput.x ) * 255 + 0.5 ) << 16 ) |
             ( uint( saturate( unpackedInput.w ) * 255 + 0.5 ) << 24 ) );
 }
+
+uint FLOAT3_to_R11G11B10_FLOAT( lpfloat3 unpackedInput )
+{
+    return Pack_R11G11B10_FLOAT( unpackedInput );
+}
 //
 // This handles various permutations for various formats with no/partial/full typed UAV store support
 void FinalUAVStore( uint2 pixelPos, lpfloat3 color )
@@ -416,6 +421,8 @@ void FinalUAVStore( uint2 pixelPos, lpfloat3 color )
         g_inoutColorWriteonly[ pixelPos ] = FLOAT4_to_R10G10B10A2_UNORM( lpfloat4( color, 0 ) );
     #elif CMAA2_UAV_STORE_UNTYPED_FORMAT == 3   // B8G8R8A8_UNORM (or B8G8R8A8_UNORM_SRGB with CMAA2_UAV_STORE_CONVERT_TO_SRGB)
         g_inoutColorWriteonly[ pixelPos ] = FLOAT4_to_B8G8R8A8_UNORM( lpfloat4( color, 0 ) );
+    #elif CMAA2_UAV_STORE_UNTYPED_FORMAT == 4   // R11G11B10_FLOAT without typed UAV store support
+        g_inoutColorWriteonly[ pixelPos ] = FLOAT3_to_R11G11B10_FLOAT( color );
     #else
         #error CMAA color packing format not defined - add it here!
     #endif
