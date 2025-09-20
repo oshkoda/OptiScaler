@@ -212,6 +212,8 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         _controlBuffer.Reset();
         _dispatchArgsBuffer.Reset();
         _outputBuffer.Reset();
+        _outputColorAlias.Reset();
+        _outputHeap.Reset();
 
         _edgePipeline.Reset();
         _processPipeline.Reset();
@@ -228,7 +230,9 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         _colorSrvDesc = {};
         _colorUavDesc = {};
         _outputFormat = DXGI_FORMAT_UNKNOWN;
+        _outputColorFormat = DXGI_FORMAT_UNKNOWN;
         _currentOutputState = D3D12_RESOURCE_STATE_COMMON;
+        _currentColorState = D3D12_RESOURCE_STATE_COMMON;
 
         _cachedInputDesc = desc;
 
@@ -268,7 +272,21 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
     }
 
     _inputResource = sourceTexture;
-    _processedResource = _inPlaceProcessing ? sourceTexture : _outputBuffer.Get();
+    ID3D12Resource* colorOutput = nullptr;
+    if (_inPlaceProcessing)
+    {
+        colorOutput = sourceTexture;
+    }
+    else if (_outputColorAlias)
+    {
+        colorOutput = _outputColorAlias.Get();
+    }
+    else
+    {
+        colorOutput = _outputBuffer.Get();
+    }
+
+    _processedResource = colorOutput;
     _currentInputState = D3D12_RESOURCE_STATE_COMMON;
     if (_inPlaceProcessing)
     {
@@ -353,6 +371,20 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
         }
     };
 
+    auto transitionColor = [&](D3D12_RESOURCE_STATES newState) {
+        if (_outputColorAlias && _currentColorState != newState)
+        {
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = _outputColorAlias.Get();
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = _currentColorState;
+            barrier.Transition.StateAfter = newState;
+            commandList->ResourceBarrier(1, &barrier);
+            _currentColorState = newState;
+        }
+    };
+
     transitionInput(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
     const UINT width = static_cast<UINT>(_cachedInputDesc.Width);
@@ -378,6 +410,18 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     commandList->SetComputeRootSignature(_rootSignature.Get());
     commandList->SetComputeRootDescriptorTable(0, _srvHeap->GetGPUDescriptorHandleForHeapStart());
     commandList->SetComputeRootDescriptorTable(1, _uavHeap->GetGPUDescriptorHandleForHeapStart());
+
+    if (_outputColorAlias)
+    {
+        transitionColor(D3D12_RESOURCE_STATE_COMMON);
+        transitionOutput(D3D12_RESOURCE_STATE_COMMON);
+
+        D3D12_RESOURCE_BARRIER aliasBarrier = {};
+        aliasBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+        aliasBarrier.Aliasing.pResourceBefore = _outputColorAlias.Get();
+        aliasBarrier.Aliasing.pResourceAfter = _outputBuffer.Get();
+        commandList->ResourceBarrier(1, &aliasBarrier);
+    }
 
     commandList->SetPipelineState(_edgePipeline.Get());
     commandList->Dispatch(groupCountX, groupCountY, 1);
@@ -461,9 +505,24 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     _device->CreateShaderResourceView(sourceTexture, &_colorSrvDesc, _srvTable[0].cpu);
     _device->CreateUnorderedAccessView(outputTarget, nullptr, &_colorUavDesc, _uavTable[0].cpu);
 
-    transitionOutput(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    if (_outputColorAlias)
+    {
+        transitionOutput(D3D12_RESOURCE_STATE_COMMON);
 
-    _processedResource = outputTarget;
+        D3D12_RESOURCE_BARRIER aliasBarrier = {};
+        aliasBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+        aliasBarrier.Aliasing.pResourceBefore = _outputBuffer.Get();
+        aliasBarrier.Aliasing.pResourceAfter = _outputColorAlias.Get();
+        commandList->ResourceBarrier(1, &aliasBarrier);
+
+        transitionColor(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        _processedResource = _outputColorAlias.Get();
+    }
+    else
+    {
+        transitionOutput(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        _processedResource = outputTarget;
+    }
 
     return true;
 }
@@ -676,71 +735,191 @@ bool SMAA_Dx12::EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc
     return true;
 }
 
-bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT resourceFormat)
+void SMAA_Dx12::ResetOutputResources()
+{
+    _outputBuffer.Reset();
+    _outputColorAlias.Reset();
+    _outputHeap.Reset();
+    _outputFormat = DXGI_FORMAT_UNKNOWN;
+    _outputColorFormat = DXGI_FORMAT_UNKNOWN;
+}
+
+bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat, DXGI_FORMAT aliasFormat)
 {
     if (_inPlaceProcessing)
     {
+        ResetOutputResources();
+        _currentOutputState = D3D12_RESOURCE_STATE_COMMON;
+        _currentColorState = D3D12_RESOURCE_STATE_COMMON;
         return true;
     }
 
-    if (resourceFormat == DXGI_FORMAT_UNKNOWN)
+    if (uavFormat == DXGI_FORMAT_UNKNOWN)
     {
         return false;
     }
 
-    auto requiresNewTexture = [&]() {
-        if (!_outputBuffer)
+    DXGI_FORMAT colorFormat = (aliasFormat == DXGI_FORMAT_UNKNOWN) ? uavFormat : aliasFormat;
+    bool requiresAlias = colorFormat != uavFormat;
+
+    auto dimsChanged = [&](ID3D12Resource* resource) {
+        if (!resource)
         {
             return true;
         }
 
-        if (_outputFormat != resourceFormat)
-        {
-            return true;
-        }
-
-        D3D12_RESOURCE_DESC currentDesc = _outputBuffer->GetDesc();
+        D3D12_RESOURCE_DESC currentDesc = resource->GetDesc();
         return currentDesc.Width != inputDesc.Width || currentDesc.Height != inputDesc.Height ||
                currentDesc.DepthOrArraySize != inputDesc.DepthOrArraySize ||
                currentDesc.SampleDesc.Count != inputDesc.SampleDesc.Count ||
                currentDesc.SampleDesc.Quality != inputDesc.SampleDesc.Quality;
     };
 
-    if (!requiresNewTexture())
+    if (!requiresAlias)
+    {
+        auto requiresNewTexture = [&]() {
+            if (!_outputBuffer)
+            {
+                return true;
+            }
+
+            if (_outputFormat != uavFormat)
+            {
+                return true;
+            }
+
+            return dimsChanged(_outputBuffer.Get());
+        };
+
+        if (!requiresNewTexture())
+        {
+            return true;
+        }
+
+        ResetOutputResources();
+
+        D3D12_HEAP_PROPERTIES heapProps = {};
+        heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        D3D12_RESOURCE_DESC outputDesc = {};
+        outputDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        outputDesc.Width = inputDesc.Width;
+        outputDesc.Height = inputDesc.Height;
+        outputDesc.DepthOrArraySize = inputDesc.DepthOrArraySize;
+        outputDesc.MipLevels = 1;
+        outputDesc.Format = uavFormat;
+        outputDesc.SampleDesc = inputDesc.SampleDesc;
+        outputDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        outputDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+        if (FAILED(_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &outputDesc,
+                                                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
+                                                    IID_PPV_ARGS(texture.ReleaseAndGetAddressOf()))))
+        {
+            LOG_ERROR("[{}] Failed to create CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
+                      static_cast<int>(uavFormat));
+            return false;
+        }
+
+        _outputBuffer = std::move(texture);
+        _outputFormat = uavFormat;
+        _outputColorFormat = colorFormat;
+        _currentOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        _currentColorState = D3D12_RESOURCE_STATE_COMMON;
+
+        LOG_INFO("[{}] Allocated CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
+                 static_cast<int>(uavFormat));
+
+        return true;
+    }
+
+    auto requiresNewAlias = [&]() {
+        if (!_outputBuffer || !_outputColorAlias || !_outputHeap)
+        {
+            return true;
+        }
+
+        if (_outputFormat != uavFormat || _outputColorFormat != colorFormat)
+        {
+            return true;
+        }
+
+        if (dimsChanged(_outputBuffer.Get()) || dimsChanged(_outputColorAlias.Get()))
+        {
+            return true;
+        }
+
+        return false;
+    };
+
+    if (!requiresNewAlias())
     {
         return true;
     }
 
-    D3D12_HEAP_PROPERTIES heapProps = {};
-    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    ResetOutputResources();
 
-    D3D12_RESOURCE_DESC outputDesc = {};
-    outputDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    outputDesc.Width = inputDesc.Width;
-    outputDesc.Height = inputDesc.Height;
-    outputDesc.DepthOrArraySize = inputDesc.DepthOrArraySize;
-    outputDesc.MipLevels = 1;
-    outputDesc.Format = resourceFormat;
-    outputDesc.SampleDesc = inputDesc.SampleDesc;
-    outputDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    outputDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    D3D12_RESOURCE_DESC computeDesc = {};
+    computeDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    computeDesc.Width = inputDesc.Width;
+    computeDesc.Height = inputDesc.Height;
+    computeDesc.DepthOrArraySize = inputDesc.DepthOrArraySize;
+    computeDesc.MipLevels = 1;
+    computeDesc.Format = uavFormat;
+    computeDesc.SampleDesc = inputDesc.SampleDesc;
+    computeDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    computeDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> texture;
-    if (FAILED(_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &outputDesc,
-                                                D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
-                                                IID_PPV_ARGS(texture.ReleaseAndGetAddressOf()))))
+    D3D12_RESOURCE_DESC colorDesc = computeDesc;
+    colorDesc.Format = colorFormat;
+    colorDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    auto computeInfo = _device->GetResourceAllocationInfo(0, 1, &computeDesc);
+    auto colorInfo = _device->GetResourceAllocationInfo(0, 1, &colorDesc);
+
+    UINT64 heapSize = std::max(computeInfo.SizeInBytes, colorInfo.SizeInBytes);
+    UINT64 heapAlignment = std::max(computeInfo.Alignment, colorInfo.Alignment);
+
+    D3D12_HEAP_DESC heapDesc = {};
+    heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapDesc.SizeInBytes = heapSize;
+    heapDesc.Alignment = heapAlignment;
+    heapDesc.Flags = D3D12_HEAP_FLAG_NONE;
+
+    if (FAILED(_device->CreateHeap(&heapDesc, IID_PPV_ARGS(_outputHeap.ReleaseAndGetAddressOf()))))
     {
-        LOG_ERROR("[{}] Failed to create CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
-                  static_cast<int>(resourceFormat));
+        LOG_ERROR("[{}] Failed to allocate CMAA2 output heap", _name);
         return false;
     }
 
-    _outputBuffer = std::move(texture);
-    _outputFormat = resourceFormat;
-    _currentOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    Microsoft::WRL::ComPtr<ID3D12Resource> computeResource;
+    if (FAILED(_device->CreatePlacedResource(_outputHeap.Get(), 0, &computeDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                                             nullptr, IID_PPV_ARGS(computeResource.ReleaseAndGetAddressOf()))))
+    {
+        LOG_ERROR("[{}] Failed to create CMAA2 compute output texture", _name);
+        ResetOutputResources();
+        return false;
+    }
 
-    LOG_INFO("[{}] Allocated CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
-             static_cast<int>(resourceFormat));
+    Microsoft::WRL::ComPtr<ID3D12Resource> colorResource;
+    if (FAILED(_device->CreatePlacedResource(_outputHeap.Get(), 0, &colorDesc, D3D12_RESOURCE_STATE_COMMON, nullptr,
+                                             IID_PPV_ARGS(colorResource.ReleaseAndGetAddressOf()))))
+    {
+        LOG_ERROR("[{}] Failed to create CMAA2 color alias texture", _name);
+        ResetOutputResources();
+        return false;
+    }
+
+    _outputBuffer = std::move(computeResource);
+    _outputColorAlias = std::move(colorResource);
+    _outputFormat = uavFormat;
+    _outputColorFormat = colorFormat;
+    _currentOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    _currentColorState = D3D12_RESOURCE_STATE_COMMON;
+
+    LOG_INFO("[{}] Allocated CMAA2 aliased output textures ({}x{}, uavFormat={}, colorFormat={})", _name, inputDesc.Width,
+             inputDesc.Height, static_cast<int>(uavFormat), static_cast<int>(colorFormat));
 
     return true;
 }
@@ -799,7 +978,7 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     DXGI_FORMAT finalSrvFormat = srvFormat;
     DXGI_FORMAT finalUavFormat = uavFormat;
-    DXGI_FORMAT outputResourceFormat = uavFormat;
+    DXGI_FORMAT aliasColorFormat = DXGI_FORMAT_UNKNOWN;
 
     if (typedStoreSupported)
     {
@@ -816,6 +995,12 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         finalUavFormat = DXGI_FORMAT_R32_UINT;
         _shaderConfig.typedStore = false;
         _shaderConfig.convertToSRGB = isSRGB;
+
+        if (_inPlaceProcessing)
+        {
+            LOG_INFO("[{}] CMAA2 disabling in-place processing due to untyped UAV path", _name);
+        }
+        _inPlaceProcessing = false;
 
         DXGI_FORMAT stripped = StripSRGB(srvFormat);
         if (stripped == DXGI_FORMAT_R8G8B8A8_UNORM)
@@ -847,11 +1032,17 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (_shaderConfig.typedStore)
     {
-        outputResourceFormat = finalUavFormat;
+        aliasColorFormat = finalUavFormat;
     }
     else
     {
-        outputResourceFormat = ResolveColorResourceFormat(_shaderConfig.colorFormat);
+        aliasColorFormat = ResolveColorResourceFormat(_shaderConfig.colorFormat);
+        if (aliasColorFormat == DXGI_FORMAT_UNKNOWN)
+        {
+            LOG_ERROR("[{}] Failed to resolve color format for CMAA2 untyped path (input format={})", _name,
+                      static_cast<int>(_shaderConfig.colorFormat));
+            return false;
+        }
     }
 
     _shaderConfig.hdrInput = IsFloatFormat(srvFormat);
@@ -890,7 +1081,7 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (!_inPlaceProcessing)
     {
-        if (!EnsureOutputResource(inputDesc, outputResourceFormat))
+        if (!EnsureOutputResource(inputDesc, finalUavFormat, aliasColorFormat))
         {
             LOG_ERROR("[{}] Failed to prepare CMAA2 output texture", _name);
             return false;
