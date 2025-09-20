@@ -735,11 +735,20 @@ bool SMAA_Dx12::EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc
     return true;
 }
 
+void SMAA_Dx12::ResetOutputResources()
+{
+    _outputBuffer.Reset();
+    _outputColorAlias.Reset();
+    _outputHeap.Reset();
+    _outputFormat = DXGI_FORMAT_UNKNOWN;
+    _outputColorFormat = DXGI_FORMAT_UNKNOWN;
+}
+
 bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat, DXGI_FORMAT aliasFormat)
 {
     if (_inPlaceProcessing)
     {
-        resetOutputResources();
+        ResetOutputResources();
         _currentOutputState = D3D12_RESOURCE_STATE_COMMON;
         _currentColorState = D3D12_RESOURCE_STATE_COMMON;
         return true;
@@ -752,14 +761,6 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
 
     DXGI_FORMAT colorFormat = (aliasFormat == DXGI_FORMAT_UNKNOWN) ? uavFormat : aliasFormat;
     bool requiresAlias = colorFormat != uavFormat;
-
-    auto resetOutputResources = [&]() {
-        _outputBuffer.Reset();
-        _outputColorAlias.Reset();
-        _outputHeap.Reset();
-        _outputFormat = DXGI_FORMAT_UNKNOWN;
-        _outputColorFormat = DXGI_FORMAT_UNKNOWN;
-    };
 
     auto dimsChanged = [&](ID3D12Resource* resource) {
         if (!resource)
@@ -795,7 +796,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
             return true;
         }
 
-        resetOutputResources();
+        ResetOutputResources();
 
         D3D12_HEAP_PROPERTIES heapProps = {};
         heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -857,7 +858,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
         return true;
     }
 
-    resetOutputResources();
+    ResetOutputResources();
 
     D3D12_RESOURCE_DESC computeDesc = {};
     computeDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -897,7 +898,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
                                              nullptr, IID_PPV_ARGS(computeResource.ReleaseAndGetAddressOf()))))
     {
         LOG_ERROR("[{}] Failed to create CMAA2 compute output texture", _name);
-        resetOutputResources();
+        ResetOutputResources();
         return false;
     }
 
@@ -906,7 +907,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
                                              IID_PPV_ARGS(colorResource.ReleaseAndGetAddressOf()))))
     {
         LOG_ERROR("[{}] Failed to create CMAA2 color alias texture", _name);
-        resetOutputResources();
+        ResetOutputResources();
         return false;
     }
 
