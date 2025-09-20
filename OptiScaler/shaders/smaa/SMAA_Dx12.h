@@ -32,7 +32,7 @@ class SMAA_Dx12
     bool EnsureDescriptorHeaps();
     bool EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc);
     bool UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D12_RESOURCE_DESC& inputDesc);
-    bool EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT resourceFormat);
+    bool EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat, DXGI_FORMAT aliasFormat);
 
     SMAAResourceHandles DescriptorFromIndex(const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>& heap, UINT index) const;
 
@@ -64,6 +64,8 @@ class SMAA_Dx12
     Microsoft::WRL::ComPtr<ID3D12CommandSignature> _commandSignature;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> _outputBuffer;
+    Microsoft::WRL::ComPtr<ID3D12Resource> _outputColorAlias;
+    Microsoft::WRL::ComPtr<ID3D12Heap> _outputHeap;
 
     ID3D12Resource* _processedResource = nullptr;
     ID3D12Resource* _inputResource = nullptr;
@@ -71,6 +73,7 @@ class SMAA_Dx12
     D3D12_RESOURCE_DESC _cachedInputDesc = {};
     D3D12_RESOURCE_STATES _currentInputState = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES _currentOutputState = D3D12_RESOURCE_STATE_COMMON;
+    D3D12_RESOURCE_STATES _currentColorState = D3D12_RESOURCE_STATE_COMMON;
 
     UINT _srvDescriptorSize = 0;
     UINT _uavDescriptorSize = 0;
@@ -94,6 +97,7 @@ class SMAA_Dx12
     D3D12_SHADER_RESOURCE_VIEW_DESC _colorSrvDesc = {};
     D3D12_UNORDERED_ACCESS_VIEW_DESC _colorUavDesc = {};
     DXGI_FORMAT _outputFormat = DXGI_FORMAT_UNKNOWN;
+    DXGI_FORMAT _outputColorFormat = DXGI_FORMAT_UNKNOWN;
     bool _inPlaceProcessing = true;
 };
 
