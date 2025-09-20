@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "precompile/CMAA2_ShaderSource.h"
+
 namespace
 {
     constexpr UINT kSrvDescriptorCount = 4;
@@ -186,15 +188,24 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         ResetHandleTable(_srvTable);
         ResetHandleTable(_uavTable);
         _shaderConfig = {};
+        _compiledConfig = {};
         _colorSrvDesc = {};
         _colorUavDesc = {};
 
         _cachedInputDesc = desc;
 
         _buffersReady = EnsureDescriptorHeaps();
+        if (!_buffersReady)
+        {
+            LOG_ERROR("[{}] Failed to prepare CMAA2 descriptor heaps", _name);
+        }
         if (_buffersReady)
         {
             _buffersReady = UpdateInputDescriptors(sourceTexture, desc);
+            if (!_buffersReady)
+            {
+                LOG_ERROR("[{}] Failed to update CMAA2 input descriptors", _name);
+            }
         }
         if (_buffersReady)
         {
@@ -659,12 +670,16 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (typedStoreSupported)
     {
+        LOG_DEBUG("[{}] CMAA2 typed UAV store supported for format={} (convertSRGB={}, isUnorm={})", _name,
+                  static_cast<int>(uavFormat), isSRGB, !IsFloatFormat(uavFormat));
         _shaderConfig.typedStore = true;
         _shaderConfig.convertToSRGB = false;
         _shaderConfig.typedStoreIsUnorm = !IsFloatFormat(uavFormat);
     }
     else
     {
+        LOG_WARN("[{}] CMAA2 typed UAV store unsupported for format={}, falling back to untyped packing", _name,
+                 static_cast<int>(uavFormat));
         finalUavFormat = DXGI_FORMAT_R32_UINT;
         _shaderConfig.typedStore = false;
         _shaderConfig.convertToSRGB = isSRGB;
@@ -682,12 +697,19 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         {
             _shaderConfig.untypedStoreMode = 3;
         }
+        else if (stripped == DXGI_FORMAT_R11G11B10_FLOAT)
+        {
+            _shaderConfig.untypedStoreMode = 4;
+        }
         else
         {
             LOG_ERROR("[{}] Unsupported CMAA2 format for untyped UAV store ({})", _name, static_cast<int>(stripped));
 
             return false;
         }
+
+        LOG_DEBUG("[{}] CMAA2 untyped store mode selected: mode={} (srvFormat={} convertSRGB={})", _name,
+                  _shaderConfig.untypedStoreMode, static_cast<int>(stripped), _shaderConfig.convertToSRGB);
     }
 
     _shaderConfig.hdrInput = IsFloatFormat(srvFormat);
@@ -737,22 +759,29 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
         _shaderConfig.srvFormat = srvFormat;
     }
 
-    if (_shadersReady && _compiledFormat == _shaderConfig.srvFormat)
+    auto configsEqual = [](const ShaderConfig& lhs, const ShaderConfig& rhs) {
+        return lhs.colorFormat == rhs.colorFormat && lhs.srvFormat == rhs.srvFormat &&
+               lhs.uavFormat == rhs.uavFormat && lhs.typedStore == rhs.typedStore &&
+               lhs.typedStoreIsUnorm == rhs.typedStoreIsUnorm && lhs.convertToSRGB == rhs.convertToSRGB &&
+               lhs.hdrInput == rhs.hdrInput && lhs.untypedStoreMode == rhs.untypedStoreMode;
+    };
+
+    if (_shadersReady && configsEqual(_compiledConfig, _shaderConfig))
     {
         return true;
     }
 
-    if (_shaderDirectory.empty())
+    std::filesystem::path shaderPath;
+    bool shaderOnDisk = false;
+    if (!_shaderDirectory.empty())
     {
-        LOG_ERROR("[{}] CMAA2 shader directory not resolved", _name);
-        return false;
+        shaderPath = _shaderDirectory / "CMAA2.hlsl";
+        shaderOnDisk = std::filesystem::exists(shaderPath);
     }
 
-    std::filesystem::path shaderPath = _shaderDirectory / "CMAA2.hlsl";
-    if (!std::filesystem::exists(shaderPath))
+    if (!shaderOnDisk)
     {
-        LOG_ERROR("[{}] CMAA2 shader file missing: {}", _name, shaderPath.string());
-        return false;
+        LOG_INFO("[{}] Using embedded CMAA2 shader source", _name);
     }
 
     std::vector<std::pair<std::string, std::string>> macroPairs;
@@ -799,8 +828,17 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
 
     auto compileShader = [&](const char* entryPoint, Microsoft::WRL::ComPtr<ID3DBlob>& blob) -> bool {
         Microsoft::WRL::ComPtr<ID3DBlob> errors;
-        HRESULT hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint,
-                                        "cs_5_1", compileFlags, 0, &blob, &errors);
+        HRESULT hr = S_OK;
+        if (shaderOnDisk)
+        {
+            hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, "cs_5_1",
+                                    compileFlags, 0, &blob, &errors);
+        }
+        else
+        {
+            hr = D3DCompile(g_cmaa2ShaderSource, sizeof(g_cmaa2ShaderSource) - 1, "CMAA2.hlsl", macros.data(), nullptr,
+                            entryPoint, "cs_5_1", compileFlags, 0, &blob, &errors);
+        }
         if (FAILED(hr))
         {
             if (errors)
@@ -914,6 +952,7 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
     }
 
     _compiledFormat = _shaderConfig.srvFormat;
+    _compiledConfig = _shaderConfig;
     _shadersReady = true;
     LOG_INFO("[{}] Compiled CMAA2 shaders for format {}", _name, static_cast<int>(_shaderConfig.srvFormat));
     return true;

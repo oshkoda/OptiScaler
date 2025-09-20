@@ -86,6 +86,7 @@ class SMAA_Dx12
     };
 
     ShaderConfig _shaderConfig = {};
+    ShaderConfig _compiledConfig = {};
     D3D12_SHADER_RESOURCE_VIEW_DESC _colorSrvDesc = {};
     D3D12_UNORDERED_ACCESS_VIEW_DESC _colorUavDesc = {};
 };

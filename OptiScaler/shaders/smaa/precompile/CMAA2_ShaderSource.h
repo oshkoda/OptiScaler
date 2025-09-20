@@ -1,3 +1,6 @@
+#pragma once
+
+inline constexpr const char g_cmaa2ShaderSource[] = R"CMAA2(
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2018, Intel Corporation
 //
@@ -1477,3 +1480,5 @@ void DebugDrawEdgesCS( uint2 dispatchThreadID : SV_DispatchThreadID )
 #endif // #ifndef __cplusplus
 
 #endif // #ifndef __CMAA2_HLSL__
+
+)CMAA2";
