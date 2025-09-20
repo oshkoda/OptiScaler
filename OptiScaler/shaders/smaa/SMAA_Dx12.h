@@ -60,6 +60,7 @@ class SMAA_Dx12
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _dispatchArgsPipeline;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _processPipeline;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> _deferredPipeline;
+    Microsoft::WRL::ComPtr<ID3D12CommandSignature> _commandSignature;
 
     ID3D12Resource* _processedResource = nullptr;
     ID3D12Resource* _inputResource = nullptr;

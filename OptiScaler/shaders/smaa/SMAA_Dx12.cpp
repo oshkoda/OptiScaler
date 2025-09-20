@@ -12,7 +12,7 @@
 #include <filesystem>
 #include <numeric>
 #include <string>
-#include <system_error>
+
 #include <vector>
 
 namespace
@@ -123,11 +123,10 @@ SMAA_Dx12::SMAA_Dx12(const char* name, ID3D12Device* device)
     }
     else
     {
-        std::error_code ec;
-        auto basePath = Util::DllPath(ec);
-        if (ec)
+        auto basePath = Util::DllPath();
+        if (basePath.empty())
         {
-            LOG_WARN("[{}] Failed to resolve OptiScaler shader directory ({})", _name, ec.value());
+            LOG_WARN("[{}] Failed to resolve OptiScaler shader directory", _name);
         }
         else
         {
@@ -268,7 +267,8 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
         }
     }
 
-    if (!_edgePipeline || !_dispatchArgsPipeline || !_processPipeline || !_deferredPipeline || !_rootSignature)
+    if (!_edgePipeline || !_dispatchArgsPipeline || !_processPipeline || !_deferredPipeline || !_rootSignature ||
+        !_commandSignature)
     {
         LOG_ERROR("[{}] CMAA2 pipeline state missing", _name);
         return false;
@@ -356,7 +356,7 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     transitionArgs(D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 
     commandList->SetPipelineState(_processPipeline.Get());
-    commandList->DispatchIndirect(_dispatchArgsBuffer.Get(), 0);
+    commandList->ExecuteIndirect(_commandSignature.Get(), 1, _dispatchArgsBuffer.Get(), 0, nullptr, 0);
 
     transitionArgs(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -387,7 +387,7 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     emitUavBarrier(_dispatchArgsBuffer.Get());
 
     commandList->SetPipelineState(_deferredPipeline.Get());
-    commandList->DispatchIndirect(_dispatchArgsBuffer.Get(), 0);
+    commandList->ExecuteIndirect(_commandSignature.Get(), 1, _dispatchArgsBuffer.Get(), 0, nullptr, 0);
 
     transitionArgs(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     emitUavBarrier(sourceTexture);
@@ -863,6 +863,25 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
     {
         LOG_ERROR("[{}] Failed to create CMAA2 root signature (hr={:x})", _name, hr);
         return false;
+    }
+
+    if (!_commandSignature)
+    {
+        D3D12_INDIRECT_ARGUMENT_DESC argumentDesc = {};
+        argumentDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH;
+
+        D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
+        commandSignatureDesc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
+        commandSignatureDesc.NumArgumentDescs = 1;
+        commandSignatureDesc.pArgumentDescs = &argumentDesc;
+
+        hr = _device->CreateCommandSignature(&commandSignatureDesc, nullptr,
+                                             IID_PPV_ARGS(_commandSignature.ReleaseAndGetAddressOf()));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("[{}] Failed to create CMAA2 command signature (hr={:x})", _name, hr);
+            return false;
+        }
     }
 
     auto createPipeline = [&](Microsoft::WRL::ComPtr<ID3DBlob>& shaderBlob,
