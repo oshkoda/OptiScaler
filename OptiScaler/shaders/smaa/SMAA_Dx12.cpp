@@ -102,23 +102,31 @@ namespace
         switch (format)
         {
         case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+            return DXGI_FORMAT_R8G8B8A8_TYPELESS;
         case DXGI_FORMAT_R8G8B8A8_UNORM:
+            return DXGI_FORMAT_R8G8B8A8_UNORM;
         case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
             return DXGI_FORMAT_R8G8B8A8_TYPELESS;
         case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+            return DXGI_FORMAT_B8G8R8A8_TYPELESS;
         case DXGI_FORMAT_B8G8R8A8_UNORM:
+            return DXGI_FORMAT_B8G8R8A8_UNORM;
         case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
             return DXGI_FORMAT_B8G8R8A8_TYPELESS;
         case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+            return DXGI_FORMAT_B8G8R8X8_TYPELESS;
         case DXGI_FORMAT_B8G8R8X8_UNORM:
+            return DXGI_FORMAT_B8G8R8X8_UNORM;
         case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
             return DXGI_FORMAT_B8G8R8X8_TYPELESS;
         case DXGI_FORMAT_R10G10B10A2_TYPELESS:
-        case DXGI_FORMAT_R10G10B10A2_UNORM:
             return DXGI_FORMAT_R10G10B10A2_TYPELESS;
+        case DXGI_FORMAT_R10G10B10A2_UNORM:
+            return DXGI_FORMAT_R10G10B10A2_UNORM;
         case DXGI_FORMAT_R16G16B16A16_TYPELESS:
-        case DXGI_FORMAT_R16G16B16A16_FLOAT:
             return DXGI_FORMAT_R16G16B16A16_TYPELESS;
+        case DXGI_FORMAT_R16G16B16A16_FLOAT:
+            return DXGI_FORMAT_R16G16B16A16_FLOAT;
         default:
             return StripSRGB(format);
         }
@@ -877,6 +885,8 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
     _colorUavDesc = {};
     _colorUavDesc.Format = finalUavFormat;
     _colorUavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    _colorUavDesc.Texture2D.MipSlice = 0;
+    _colorUavDesc.Texture2D.PlaneSlice = 0;
 
     if (!_inPlaceProcessing)
     {
