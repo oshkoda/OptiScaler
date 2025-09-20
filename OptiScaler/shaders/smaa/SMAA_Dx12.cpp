@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "precompile/CMAA2_ShaderSource.h"
+
 namespace
 {
     constexpr UINT kSrvDescriptorCount = 4;
@@ -186,6 +188,7 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         ResetHandleTable(_srvTable);
         ResetHandleTable(_uavTable);
         _shaderConfig = {};
+        _compiledConfig = {};
         _colorSrvDesc = {};
         _colorUavDesc = {};
 
@@ -756,22 +759,29 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
         _shaderConfig.srvFormat = srvFormat;
     }
 
-    if (_shadersReady && _compiledFormat == _shaderConfig.srvFormat)
+    auto configsEqual = [](const ShaderConfig& lhs, const ShaderConfig& rhs) {
+        return lhs.colorFormat == rhs.colorFormat && lhs.srvFormat == rhs.srvFormat &&
+               lhs.uavFormat == rhs.uavFormat && lhs.typedStore == rhs.typedStore &&
+               lhs.typedStoreIsUnorm == rhs.typedStoreIsUnorm && lhs.convertToSRGB == rhs.convertToSRGB &&
+               lhs.hdrInput == rhs.hdrInput && lhs.untypedStoreMode == rhs.untypedStoreMode;
+    };
+
+    if (_shadersReady && configsEqual(_compiledConfig, _shaderConfig))
     {
         return true;
     }
 
-    if (_shaderDirectory.empty())
+    std::filesystem::path shaderPath;
+    bool shaderOnDisk = false;
+    if (!_shaderDirectory.empty())
     {
-        LOG_ERROR("[{}] CMAA2 shader directory not resolved", _name);
-        return false;
+        shaderPath = _shaderDirectory / "CMAA2.hlsl";
+        shaderOnDisk = std::filesystem::exists(shaderPath);
     }
 
-    std::filesystem::path shaderPath = _shaderDirectory / "CMAA2.hlsl";
-    if (!std::filesystem::exists(shaderPath))
+    if (!shaderOnDisk)
     {
-        LOG_ERROR("[{}] CMAA2 shader file missing: {}", _name, shaderPath.string());
-        return false;
+        LOG_INFO("[{}] Using embedded CMAA2 shader source", _name);
     }
 
     std::vector<std::pair<std::string, std::string>> macroPairs;
@@ -818,8 +828,17 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
 
     auto compileShader = [&](const char* entryPoint, Microsoft::WRL::ComPtr<ID3DBlob>& blob) -> bool {
         Microsoft::WRL::ComPtr<ID3DBlob> errors;
-        HRESULT hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint,
-                                        "cs_5_1", compileFlags, 0, &blob, &errors);
+        HRESULT hr = S_OK;
+        if (shaderOnDisk)
+        {
+            hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, "cs_5_1",
+                                    compileFlags, 0, &blob, &errors);
+        }
+        else
+        {
+            hr = D3DCompile(g_cmaa2ShaderSource, sizeof(g_cmaa2ShaderSource) - 1, "CMAA2.hlsl", macros.data(), nullptr,
+                            entryPoint, "cs_5_1", compileFlags, 0, &blob, &errors);
+        }
         if (FAILED(hr))
         {
             if (errors)
@@ -933,6 +952,7 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
     }
 
     _compiledFormat = _shaderConfig.srvFormat;
+    _compiledConfig = _shaderConfig;
     _shadersReady = true;
     LOG_INFO("[{}] Compiled CMAA2 shaders for format {}", _name, static_cast<int>(_shaderConfig.srvFormat));
     return true;
