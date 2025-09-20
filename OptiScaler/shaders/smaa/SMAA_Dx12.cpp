@@ -685,6 +685,7 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         else
         {
             LOG_ERROR("[{}] Unsupported CMAA2 format for untyped UAV store ({})", _name, static_cast<int>(stripped));
+
             return false;
         }
     }
