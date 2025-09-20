@@ -1,4 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma once
+
+inline constexpr char g_cmaa2ShaderSource[] =
+R"cmaa2_0(///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2018, Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 ( the "License" );
@@ -320,7 +323,8 @@ lpfloat3 InternalUnpackColor( uint packedColor )
 uint InternalPackColor( lpfloat3 color )
 {
 #if CMAA2_SUPPORT_HDR_COLOR_RANGE
-    return Pack_R11G11B10_FLOAT( color );
+    return Pack_R11G11B)cmaa2_0"
+R"cmaa2_1(10_FLOAT( color );
 #else
     return Pack_R11G11B10_E4_FLOAT( color );
 #endif
@@ -637,7 +641,8 @@ void EdgesColor2x2CS( uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_Group
         g_inColorMSComplexityMaskReadonly.GetDimensions( texSize.x, texSize.y );
         float2 gatherUV = float2(pixelPos) / texSize;
         float4 TL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 0 ) );
-        float4 TR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 0 ) );
+        float4 TR = g_inColorMSComplexi)cmaa2_1"
+R"cmaa2_2(tyMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 0 ) );
         float4 BL = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 0, 2 ) );
         float4 BR = g_inColorMSComplexityMaskReadonly.GatherRed( g_gather_point_clamp_Sampler, gatherUV, int2( 2, 2 ) );
         float4 sumAll = TL+TR+BL+BR;
@@ -928,7 +933,8 @@ void FindZLineLengths( out lpfloat lineLengthLeft, out lpfloat lineLengthRight, 
 {
 // this enables additional conservativeness test but is pretty detrimental to the final effect so left disabled by default even when CMAA2_EXTRA_SHARPNESS is enabled
 #define CMAA2_EXTRA_CONSERVATIVENESS2 0
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /////)cmaa2_2"
+R"cmaa2_3(////////////////////////////////////////////////////////////////////////////////////////////////////
     // TODO: a cleaner and faster way to get to these - a precalculated array indexing maybe?
     uint maskLeft, bitsContinueLeft, maskRight, bitsContinueRight;
     {
@@ -1309,7 +1315,8 @@ void ProcessCandidatesCS( uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gr
         bool    itemHorizontal  = (itemVal.y >> 31) & 1;
         bool    itemInvertedZ   = (itemVal.y >> 30) & 1;
         lpfloat itemStepIndex   = float((itemVal.y >> 20) & 0x3FF) - 256.0;
-        lpfloat itemSrcOffset   = ((itemVal.y >> 10) & 0x3FF) - 256.0;
+        lpfloat itemSrc)cmaa2_3"
+R"cmaa2_4(Offset   = ((itemVal.y >> 10) & 0x3FF) - 256.0;
         lpfloat itemLerpK       = (itemVal.y & 0x3FF) / 1023.0;
 
         lpfloat2 itemStepRight    = ( itemHorizontal ) ? ( lpfloat2( 1, 0 ) ) : ( lpfloat2( 0, -1 ) );
@@ -1477,3 +1484,5 @@ void DebugDrawEdgesCS( uint2 dispatchThreadID : SV_DispatchThreadID )
 #endif // #ifndef __cplusplus
 
 #endif // #ifndef __CMAA2_HLSL__
+)cmaa2_4"
+;
