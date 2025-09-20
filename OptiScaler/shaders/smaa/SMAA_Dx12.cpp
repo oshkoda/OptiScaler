@@ -97,6 +97,33 @@ namespace
         }
     }
 
+    DXGI_FORMAT ResolveColorResourceFormat(DXGI_FORMAT format)
+    {
+        switch (format)
+        {
+        case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+        case DXGI_FORMAT_R8G8B8A8_UNORM:
+        case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+            return DXGI_FORMAT_R8G8B8A8_TYPELESS;
+        case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+        case DXGI_FORMAT_B8G8R8A8_UNORM:
+        case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+            return DXGI_FORMAT_B8G8R8A8_TYPELESS;
+        case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+        case DXGI_FORMAT_B8G8R8X8_UNORM:
+        case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+            return DXGI_FORMAT_B8G8R8X8_TYPELESS;
+        case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+        case DXGI_FORMAT_R10G10B10A2_UNORM:
+            return DXGI_FORMAT_R10G10B10A2_TYPELESS;
+        case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+        case DXGI_FORMAT_R16G16B16A16_FLOAT:
+            return DXGI_FORMAT_R16G16B16A16_TYPELESS;
+        default:
+            return StripSRGB(format);
+        }
+    }
+
     bool IsFloatFormat(DXGI_FORMAT format)
     {
         switch (format)
@@ -641,14 +668,14 @@ bool SMAA_Dx12::EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc
     return true;
 }
 
-bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat)
+bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT resourceFormat)
 {
     if (_inPlaceProcessing)
     {
         return true;
     }
 
-    if (uavFormat == DXGI_FORMAT_UNKNOWN)
+    if (resourceFormat == DXGI_FORMAT_UNKNOWN)
     {
         return false;
     }
@@ -659,7 +686,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
             return true;
         }
 
-        if (_outputFormat != uavFormat)
+        if (_outputFormat != resourceFormat)
         {
             return true;
         }
@@ -685,7 +712,7 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
     outputDesc.Height = inputDesc.Height;
     outputDesc.DepthOrArraySize = inputDesc.DepthOrArraySize;
     outputDesc.MipLevels = 1;
-    outputDesc.Format = uavFormat;
+    outputDesc.Format = resourceFormat;
     outputDesc.SampleDesc = inputDesc.SampleDesc;
     outputDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     outputDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
@@ -696,16 +723,16 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
                                                 IID_PPV_ARGS(texture.ReleaseAndGetAddressOf()))))
     {
         LOG_ERROR("[{}] Failed to create CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
-                  static_cast<int>(uavFormat));
+                  static_cast<int>(resourceFormat));
         return false;
     }
 
     _outputBuffer = std::move(texture);
-    _outputFormat = uavFormat;
+    _outputFormat = resourceFormat;
     _currentOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 
     LOG_INFO("[{}] Allocated CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
-             static_cast<int>(uavFormat));
+             static_cast<int>(resourceFormat));
 
     return true;
 }
@@ -764,6 +791,7 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     DXGI_FORMAT finalSrvFormat = srvFormat;
     DXGI_FORMAT finalUavFormat = uavFormat;
+    DXGI_FORMAT outputResourceFormat = uavFormat;
 
     if (typedStoreSupported)
     {
@@ -809,6 +837,15 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
                   _shaderConfig.untypedStoreMode, static_cast<int>(stripped), _shaderConfig.convertToSRGB);
     }
 
+    if (_shaderConfig.typedStore)
+    {
+        outputResourceFormat = finalUavFormat;
+    }
+    else
+    {
+        outputResourceFormat = ResolveColorResourceFormat(_shaderConfig.colorFormat);
+    }
+
     _shaderConfig.hdrInput = IsFloatFormat(srvFormat);
     _shaderConfig.srvFormat = finalSrvFormat;
     _shaderConfig.uavFormat = finalUavFormat;
@@ -843,7 +880,7 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (!_inPlaceProcessing)
     {
-        if (!EnsureOutputResource(inputDesc, finalUavFormat))
+        if (!EnsureOutputResource(inputDesc, outputResourceFormat))
         {
             LOG_ERROR("[{}] Failed to prepare CMAA2 output texture", _name);
             return false;
