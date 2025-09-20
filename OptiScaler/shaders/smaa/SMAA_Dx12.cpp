@@ -682,6 +682,10 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         {
             _shaderConfig.untypedStoreMode = 3;
         }
+        else if (stripped == DXGI_FORMAT_R11G11B10_FLOAT)
+        {
+            _shaderConfig.untypedStoreMode = 4;
+        }
         else
         {
             LOG_ERROR("[{}] Unsupported CMAA2 format for untyped UAV store ({})", _name, static_cast<int>(stripped));
