@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include "precompile/CMAA2_ShaderSource.h"
+
 namespace
 {
     constexpr UINT kSrvDescriptorCount = 4;
@@ -174,6 +176,7 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         _deferredItemBuffer.Reset();
         _controlBuffer.Reset();
         _dispatchArgsBuffer.Reset();
+        _outputBuffer.Reset();
 
         _edgePipeline.Reset();
         _processPipeline.Reset();
@@ -186,15 +189,26 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
         ResetHandleTable(_srvTable);
         ResetHandleTable(_uavTable);
         _shaderConfig = {};
+        _compiledConfig = {};
         _colorSrvDesc = {};
         _colorUavDesc = {};
+        _outputFormat = DXGI_FORMAT_UNKNOWN;
+        _currentOutputState = D3D12_RESOURCE_STATE_COMMON;
 
         _cachedInputDesc = desc;
 
         _buffersReady = EnsureDescriptorHeaps();
+        if (!_buffersReady)
+        {
+            LOG_ERROR("[{}] Failed to prepare CMAA2 descriptor heaps", _name);
+        }
         if (_buffersReady)
         {
             _buffersReady = UpdateInputDescriptors(sourceTexture, desc);
+            if (!_buffersReady)
+            {
+                LOG_ERROR("[{}] Failed to update CMAA2 input descriptors", _name);
+            }
         }
         if (_buffersReady)
         {
@@ -219,8 +233,12 @@ bool SMAA_Dx12::CreateBufferResources(ID3D12Resource* sourceTexture)
     }
 
     _inputResource = sourceTexture;
-    _processedResource = sourceTexture;
+    _processedResource = _inPlaceProcessing ? sourceTexture : _outputBuffer.Get();
     _currentInputState = D3D12_RESOURCE_STATE_COMMON;
+    if (_inPlaceProcessing)
+    {
+        _currentOutputState = _currentInputState;
+    }
 
     return true;
 }
@@ -252,24 +270,17 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
         }
     }
 
-    if (sourceTexture == nullptr)
-    {
-        LOG_WARN("[{}] Dispatch called with null source texture", _name);
-        return false;
-    }
-
-    if (!_buffersReady || sourceTexture != _inputResource)
-    {
-        if (!CreateBufferResources(sourceTexture))
-        {
-            return false;
-        }
-    }
-
     if (!_edgePipeline || !_dispatchArgsPipeline || !_processPipeline || !_deferredPipeline || !_rootSignature ||
         !_commandSignature)
     {
         LOG_ERROR("[{}] CMAA2 pipeline state missing", _name);
+        return false;
+    }
+
+    ID3D12Resource* outputTarget = _inPlaceProcessing ? sourceTexture : _outputBuffer.Get();
+    if (!_inPlaceProcessing && outputTarget == nullptr)
+    {
+        LOG_ERROR("[{}] CMAA2 intermediate output missing", _name);
         return false;
     }
 
@@ -284,6 +295,26 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
             barrier.Transition.StateAfter = newState;
             commandList->ResourceBarrier(1, &barrier);
             _currentInputState = newState;
+        }
+    };
+
+    auto transitionOutput = [&](D3D12_RESOURCE_STATES newState) {
+        if (_inPlaceProcessing)
+        {
+            transitionInput(newState);
+            return;
+        }
+
+        if (_outputBuffer && _currentOutputState != newState)
+        {
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Transition.pResource = _outputBuffer.Get();
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = _currentOutputState;
+            barrier.Transition.StateAfter = newState;
+            commandList->ResourceBarrier(1, &barrier);
+            _currentOutputState = newState;
         }
     };
 
@@ -379,9 +410,9 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     nullSrv.Format = DXGI_FORMAT_R8_UNORM;
     nullSrv.Texture2D.MipLevels = 1;
     _device->CreateShaderResourceView(nullptr, &nullSrv, _srvTable[0].cpu);
-    _device->CreateUnorderedAccessView(sourceTexture, nullptr, &_colorUavDesc, _uavTable[0].cpu);
+    _device->CreateUnorderedAccessView(outputTarget, nullptr, &_colorUavDesc, _uavTable[0].cpu);
 
-    transitionInput(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    transitionOutput(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     emitUavBarrier(_dispatchArgsBuffer.Get());
 
@@ -389,13 +420,15 @@ bool SMAA_Dx12::Dispatch(ID3D12GraphicsCommandList* commandList, ID3D12Resource*
     commandList->ExecuteIndirect(_commandSignature.Get(), 1, _dispatchArgsBuffer.Get(), 0, nullptr, 0);
 
     transitionArgs(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    emitUavBarrier(sourceTexture);
+    emitUavBarrier(outputTarget);
 
     // Restore descriptors for the next frame
     _device->CreateShaderResourceView(sourceTexture, &_colorSrvDesc, _srvTable[0].cpu);
-    _device->CreateUnorderedAccessView(sourceTexture, nullptr, &_colorUavDesc, _uavTable[0].cpu);
+    _device->CreateUnorderedAccessView(outputTarget, nullptr, &_colorUavDesc, _uavTable[0].cpu);
 
-    _processedResource = sourceTexture;
+    transitionOutput(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+    _processedResource = outputTarget;
 
     return true;
 }
@@ -608,6 +641,75 @@ bool SMAA_Dx12::EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc
     return true;
 }
 
+bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat)
+{
+    if (_inPlaceProcessing)
+    {
+        return true;
+    }
+
+    if (uavFormat == DXGI_FORMAT_UNKNOWN)
+    {
+        return false;
+    }
+
+    auto requiresNewTexture = [&]() {
+        if (!_outputBuffer)
+        {
+            return true;
+        }
+
+        if (_outputFormat != uavFormat)
+        {
+            return true;
+        }
+
+        D3D12_RESOURCE_DESC currentDesc = _outputBuffer->GetDesc();
+        return currentDesc.Width != inputDesc.Width || currentDesc.Height != inputDesc.Height ||
+               currentDesc.DepthOrArraySize != inputDesc.DepthOrArraySize ||
+               currentDesc.SampleDesc.Count != inputDesc.SampleDesc.Count ||
+               currentDesc.SampleDesc.Quality != inputDesc.SampleDesc.Quality;
+    };
+
+    if (!requiresNewTexture())
+    {
+        return true;
+    }
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    D3D12_RESOURCE_DESC outputDesc = {};
+    outputDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    outputDesc.Width = inputDesc.Width;
+    outputDesc.Height = inputDesc.Height;
+    outputDesc.DepthOrArraySize = inputDesc.DepthOrArraySize;
+    outputDesc.MipLevels = 1;
+    outputDesc.Format = uavFormat;
+    outputDesc.SampleDesc = inputDesc.SampleDesc;
+    outputDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    outputDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+    if (FAILED(_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &outputDesc,
+                                                D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
+                                                IID_PPV_ARGS(texture.ReleaseAndGetAddressOf()))))
+    {
+        LOG_ERROR("[{}] Failed to create CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
+                  static_cast<int>(uavFormat));
+        return false;
+    }
+
+    _outputBuffer = std::move(texture);
+    _outputFormat = uavFormat;
+    _currentOutputState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+    LOG_INFO("[{}] Allocated CMAA2 output texture ({}x{}, format={})", _name, outputDesc.Width, outputDesc.Height,
+             static_cast<int>(uavFormat));
+
+    return true;
+}
+
 SMAAResourceHandles SMAA_Dx12::DescriptorFromIndex(const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>& heap, UINT index) const
 {
     SMAAResourceHandles handles;
@@ -634,6 +736,12 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
     _shaderConfig = {};
     _shaderConfig.colorFormat = inputDesc.Format;
 
+    _inPlaceProcessing = (inputDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0;
+    if (!_inPlaceProcessing && !_outputBuffer)
+    {
+        LOG_INFO("[{}] CMAA2 input lacks UAV flag; using intermediate output texture", _name);
+    }
+
     DXGI_FORMAT srvFormat = TranslateTypelessFormat(inputDesc.Format);
     DXGI_FORMAT uavFormat = srvFormat;
 
@@ -659,12 +767,16 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
 
     if (typedStoreSupported)
     {
+        LOG_DEBUG("[{}] CMAA2 typed UAV store supported for format={} (convertSRGB={}, isUnorm={})", _name,
+                  static_cast<int>(uavFormat), isSRGB, !IsFloatFormat(uavFormat));
         _shaderConfig.typedStore = true;
         _shaderConfig.convertToSRGB = false;
         _shaderConfig.typedStoreIsUnorm = !IsFloatFormat(uavFormat);
     }
     else
     {
+        LOG_WARN("[{}] CMAA2 typed UAV store unsupported for format={}, falling back to untyped packing", _name,
+                 static_cast<int>(uavFormat));
         finalUavFormat = DXGI_FORMAT_R32_UINT;
         _shaderConfig.typedStore = false;
         _shaderConfig.convertToSRGB = isSRGB;
@@ -682,12 +794,19 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
         {
             _shaderConfig.untypedStoreMode = 3;
         }
+        else if (stripped == DXGI_FORMAT_R11G11B10_FLOAT)
+        {
+            _shaderConfig.untypedStoreMode = 4;
+        }
         else
         {
             LOG_ERROR("[{}] Unsupported CMAA2 format for untyped UAV store ({})", _name, static_cast<int>(stripped));
 
             return false;
         }
+
+        LOG_DEBUG("[{}] CMAA2 untyped store mode selected: mode={} (srvFormat={} convertSRGB={})", _name,
+                  _shaderConfig.untypedStoreMode, static_cast<int>(stripped), _shaderConfig.convertToSRGB);
     }
 
     _shaderConfig.hdrInput = IsFloatFormat(srvFormat);
@@ -722,8 +841,24 @@ bool SMAA_Dx12::UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D1
     _colorUavDesc.Format = finalUavFormat;
     _colorUavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 
+    if (!_inPlaceProcessing)
+    {
+        if (!EnsureOutputResource(inputDesc, finalUavFormat))
+        {
+            LOG_ERROR("[{}] Failed to prepare CMAA2 output texture", _name);
+            return false;
+        }
+    }
+
+    ID3D12Resource* outputTarget = _inPlaceProcessing ? sourceTexture : _outputBuffer.Get();
+    if (outputTarget == nullptr)
+    {
+        LOG_ERROR("[{}] CMAA2 output target unavailable", _name);
+        return false;
+    }
+
     auto colorUav = DescriptorFromIndex(_uavHeap, 0);
-    _device->CreateUnorderedAccessView(sourceTexture, nullptr, &_colorUavDesc, colorUav.cpu);
+    _device->CreateUnorderedAccessView(outputTarget, nullptr, &_colorUavDesc, colorUav.cpu);
     _uavTable[0] = colorUav;
 
     return true;
@@ -737,22 +872,29 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
         _shaderConfig.srvFormat = srvFormat;
     }
 
-    if (_shadersReady && _compiledFormat == _shaderConfig.srvFormat)
+    auto configsEqual = [](const ShaderConfig& lhs, const ShaderConfig& rhs) {
+        return lhs.colorFormat == rhs.colorFormat && lhs.srvFormat == rhs.srvFormat &&
+               lhs.uavFormat == rhs.uavFormat && lhs.typedStore == rhs.typedStore &&
+               lhs.typedStoreIsUnorm == rhs.typedStoreIsUnorm && lhs.convertToSRGB == rhs.convertToSRGB &&
+               lhs.hdrInput == rhs.hdrInput && lhs.untypedStoreMode == rhs.untypedStoreMode;
+    };
+
+    if (_shadersReady && configsEqual(_compiledConfig, _shaderConfig))
     {
         return true;
     }
 
-    if (_shaderDirectory.empty())
+    std::filesystem::path shaderPath;
+    bool shaderOnDisk = false;
+    if (!_shaderDirectory.empty())
     {
-        LOG_ERROR("[{}] CMAA2 shader directory not resolved", _name);
-        return false;
+        shaderPath = _shaderDirectory / "CMAA2.hlsl";
+        shaderOnDisk = std::filesystem::exists(shaderPath);
     }
 
-    std::filesystem::path shaderPath = _shaderDirectory / "CMAA2.hlsl";
-    if (!std::filesystem::exists(shaderPath))
+    if (!shaderOnDisk)
     {
-        LOG_ERROR("[{}] CMAA2 shader file missing: {}", _name, shaderPath.string());
-        return false;
+        LOG_INFO("[{}] Using embedded CMAA2 shader source", _name);
     }
 
     std::vector<std::pair<std::string, std::string>> macroPairs;
@@ -799,8 +941,17 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
 
     auto compileShader = [&](const char* entryPoint, Microsoft::WRL::ComPtr<ID3DBlob>& blob) -> bool {
         Microsoft::WRL::ComPtr<ID3DBlob> errors;
-        HRESULT hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint,
-                                        "cs_5_1", compileFlags, 0, &blob, &errors);
+        HRESULT hr = S_OK;
+        if (shaderOnDisk)
+        {
+            hr = D3DCompileFromFile(shaderPath.c_str(), macros.data(), D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, "cs_5_1",
+                                    compileFlags, 0, &blob, &errors);
+        }
+        else
+        {
+            hr = D3DCompile(g_cmaa2ShaderSource, sizeof(g_cmaa2ShaderSource) - 1, "CMAA2.hlsl", macros.data(), nullptr,
+                            entryPoint, "cs_5_1", compileFlags, 0, &blob, &errors);
+        }
         if (FAILED(hr))
         {
             if (errors)
@@ -914,6 +1065,7 @@ bool SMAA_Dx12::EnsureShaders(const D3D12_RESOURCE_DESC& inputDesc)
     }
 
     _compiledFormat = _shaderConfig.srvFormat;
+    _compiledConfig = _shaderConfig;
     _shadersReady = true;
     LOG_INFO("[{}] Compiled CMAA2 shaders for format {}", _name, static_cast<int>(_shaderConfig.srvFormat));
     return true;
