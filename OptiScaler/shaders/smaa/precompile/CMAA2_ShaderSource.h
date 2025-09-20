@@ -1,4 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma once
+
+inline constexpr const char g_cmaa2ShaderSource[] =
+R"cmaa2_0(///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2018, Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 ( the "License" );
@@ -605,7 +608,8 @@ void GroupsharedLoadQuadHV( uint addr, out lpfloat2 e00, out lpfloat2 e10, out l
     lpfloat4 valV = g_groupShared2x2FracEdgesV[addr]; e00.x = valV.x; e10.x = valV.y; e01.x = valV.z; e11.x = valV.w; 
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////)cmaa2_0"
+R"cmaa2_1(////////////////////////////////////////////////////////////////////////////////////////////////
 // Edge detection compute shader
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //groupshared uint g_groupShared2x2ProcColors[(CMAA2_CS_INPUT_KERNEL_SIZE_X * 2 + 1) * (CMAA2_CS_INPUT_KERNEL_SIZE_Y * 2 + 1)];
@@ -1222,7 +1226,8 @@ void ProcessCandidatesCS( uint3 dispatchThreadID : SV_DispatchThreadID, uint3 gr
             lpfloat4 edgesP2P0 = UnpackEdgesFlt( LoadEdge( pixelPos, int2(  2, 0 ), msaaSampleIndex ) );
 
             DetectZsHorizontal( edges, edgesM1P0, edgesP1P0, edgesP2P0, invertedZScore, normalZScore );
-            maxScore = max( invertedZScore, normalZScore );
+            maxScore = max( inv)cmaa2_1"
+R"cmaa2_2(ertedZScore, normalZScore );
 
             if( maxScore > 0 )
             {
@@ -1477,3 +1482,5 @@ void DebugDrawEdgesCS( uint2 dispatchThreadID : SV_DispatchThreadID )
 #endif // #ifndef __cplusplus
 
 #endif // #ifndef __CMAA2_HLSL__
+)cmaa2_2"
+;
