@@ -878,8 +878,8 @@ bool SMAA_Dx12::EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_
     auto computeInfo = _device->GetResourceAllocationInfo(0, 1, &computeDesc);
     auto colorInfo = _device->GetResourceAllocationInfo(0, 1, &colorDesc);
 
-    UINT64 heapSize = (std::max)(computeInfo.SizeInBytes, colorInfo.SizeInBytes);
-    UINT64 heapAlignment = (std::max)(computeInfo.Alignment, colorInfo.Alignment);
+    UINT64 heapSize = std::max<UINT64>(computeInfo.SizeInBytes, colorInfo.SizeInBytes);
+    UINT64 heapAlignment = std::max<UINT64>(computeInfo.Alignment, colorInfo.Alignment);
 
     D3D12_HEAP_DESC heapDesc = {};
     heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
