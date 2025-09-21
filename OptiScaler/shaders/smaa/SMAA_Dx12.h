@@ -33,6 +33,7 @@ class SMAA_Dx12
     bool EnsureIntermediateResources(const D3D12_RESOURCE_DESC& inputDesc);
     bool UpdateInputDescriptors(ID3D12Resource* sourceTexture, const D3D12_RESOURCE_DESC& inputDesc);
     bool EnsureOutputResource(const D3D12_RESOURCE_DESC& inputDesc, DXGI_FORMAT uavFormat, DXGI_FORMAT aliasFormat);
+
     void ResetOutputResources();
 
     SMAAResourceHandles DescriptorFromIndex(const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>& heap, UINT index) const;
